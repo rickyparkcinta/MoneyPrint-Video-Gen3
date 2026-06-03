@@ -1,50 +1,106 @@
-"use client";
+"use client"
 
-import { Mail } from "lucide-react";
-import { useState } from "react";
-import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { Mail, Loader2 } from "lucide-react"
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser"
 
-export function AuthForm({ mode }: { mode: "login" | "signup" }) {
-  const [email, setEmail] = useState("");
-  const [message, setMessage] = useState("");
-  const [loading, setLoading] = useState(false);
+interface AuthFormProps {
+  mode: "login" | "signup"
+}
 
-  async function submit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setLoading(true);
-    setMessage("");
+export function AuthForm({ mode }: AuthFormProps) {
+  const [email, setEmail] = useState("")
+  const [message, setMessage] = useState("")
+  const [isError, setIsError] = useState(false)
+  const [loading, setLoading] = useState(false)
 
-    const supabase = createSupabaseBrowserClient();
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setLoading(true)
+    setMessage("")
+    setIsError(false)
+
+    const supabase = createSupabaseBrowserClient()
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
         emailRedirectTo: `${window.location.origin}/dashboard`,
-        shouldCreateUser: mode === "signup"
-      }
-    });
+        shouldCreateUser: mode === "signup",
+      },
+    })
 
-    setLoading(false);
-    setMessage(error ? error.message : "Check your email for the magic link.");
+    setLoading(false)
+    if (error) {
+      setIsError(true)
+      setMessage(error.message)
+    } else {
+      setMessage("Check your email for the magic link.")
+    }
   }
 
   return (
-    <form className="panel panel-pad form" onSubmit={submit} style={{ maxWidth: 560 }}>
-      <div className="field">
-        <label htmlFor="email">Email</label>
-        <input
-          id="email"
-          placeholder="you@example.com"
-          required
-          type="email"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-        />
-      </div>
-      {message ? <p className="notice">{message}</p> : null}
-      <button className="button primary" disabled={loading} type="submit">
-        <Mail size={16} />
-        {loading ? "Sending..." : mode === "signup" ? "Create account" : "Send magic link"}
-      </button>
-    </form>
-  );
+    <Card className="w-full max-w-md">
+      <CardHeader className="text-center">
+        <CardTitle className="text-2xl">
+          {mode === "signup" ? "Create your account" : "Welcome back"}
+        </CardTitle>
+        <CardDescription>
+          {mode === "signup"
+            ? "Enter your email to get started with MoneyPrint"
+            : "Enter your email to sign in to your account"}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="email">Email address</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="you@example.com"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
+              disabled={loading}
+            />
+          </div>
+
+          {message && (
+            <div
+              className={`rounded-lg border p-3 text-sm ${
+                isError
+                  ? "border-destructive/50 bg-destructive/10 text-destructive"
+                  : "border-primary/50 bg-primary/10 text-primary"
+              }`}
+            >
+              {message}
+            </div>
+          )}
+
+          <Button type="submit" className="w-full" size="lg" disabled={loading}>
+            {loading ? (
+              <>
+                <Loader2 className="animate-spin" />
+                Sending link...
+              </>
+            ) : (
+              <>
+                <Mail />
+                {mode === "signup" ? "Create account" : "Send magic link"}
+              </>
+            )}
+          </Button>
+
+          <p className="text-center text-xs text-muted-foreground">
+            We&apos;ll send you a magic link to sign in. No password needed.
+          </p>
+        </form>
+      </CardContent>
+    </Card>
+  )
 }
