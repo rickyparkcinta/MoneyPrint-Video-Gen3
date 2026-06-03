@@ -1,15 +1,17 @@
 import type { Metadata } from "next"
 import Link from "next/link"
-import { ArrowLeft, Download, RefreshCw, Share2, Trash2, Clock, Play } from "lucide-react"
+import { ArrowLeft, Clock, Play, FileText, Captions, Info, Copy as CopyIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { Separator } from "@/components/ui/separator"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { StatusBadge } from "@/components/StatusBadge"
-import { JobProgressSteps } from "@/components/JobProgressSteps"
+import { ProgressTimeline } from "@/components/ProgressTimeline"
+import { VideoDetailActions } from "@/components/VideoDetailActions"
 import { formatDateTime, formatDuration } from "@/lib/utils"
 import { mockVideos } from "@/lib/mock-data"
+import type { Video } from "@/lib/types"
 import { createSignedOutputUrl } from "@/lib/jobs"
 import { getSupabaseAdmin } from "@/lib/supabase/admin"
 import { getAuthenticatedUser } from "@/lib/supabase/server"
@@ -23,7 +25,7 @@ export default async function VideoDetailPage({ params }: { params: Promise<{ id
   const { id } = await params
 
   // Try to get real data, fall back to mock
-  let video = mockVideos.find((v) => v.id === id) || mockVideos[0]
+  let video: Video = mockVideos.find((v) => v.id === id) || mockVideos[0]
   let outputUrl: string | null = null
 
   try {
@@ -38,12 +40,12 @@ export default async function VideoDetailPage({ params }: { params: Promise<{ id
 
       if (job) {
         video = {
+          ...video,
           id: job.id,
           userId: user.id,
           prompt: job.topic,
-          status: job.status as "queued" | "processing" | "completed" | "failed",
-          steps: [],
-          progress: job.progress || 0,
+          status: job.status as Video["status"],
+          progress: job.progress ?? 0,
           createdAt: job.created_at,
           completedAt: job.completed_at,
           error: job.error_message,
@@ -59,6 +61,20 @@ export default async function VideoDetailPage({ params }: { params: Promise<{ id
   const isCompleted = video.status === "completed"
   const isProcessing = video.status === "processing"
   const isFailed = video.status === "failed"
+  const events = video.events ?? []
+
+  const metadataRows: Array<{ label: string; value: string }> = [
+    { label: "Job ID", value: video.id },
+    { label: "Status", value: video.status },
+    { label: "Language", value: video.language ?? "English" },
+    { label: "Aspect Ratio", value: video.aspectRatio === "16:9" ? "16:9 (Horizontal)" : "9:16 (Vertical)" },
+    { label: "Target Duration", value: `${video.duration ?? 30} seconds` },
+    { label: "Voice", value: video.voice ?? "Female Voice" },
+    { label: "Subtitle Style", value: video.subtitleStyle ?? "Clean" },
+    { label: "Music", value: video.musicStyle ?? "None" },
+    { label: "Variants", value: String(video.variants ?? 1) },
+    { label: "Credits Used", value: `${video.creditCost ?? 1} credit${(video.creditCost ?? 1) === 1 ? "" : "s"}` },
+  ]
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
@@ -85,10 +101,9 @@ export default async function VideoDetailPage({ params }: { params: Promise<{ id
                   {formatDuration(video.duration)}
                 </Badge>
               )}
+              {video.aspectRatio && <Badge variant="secondary">{video.aspectRatio}</Badge>}
             </div>
-            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-              {video.prompt}
-            </h1>
+            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{video.prompt}</h1>
             <p className="mt-2 text-sm text-muted-foreground">
               Created {formatDateTime(video.createdAt)}
               {video.completedAt && ` • Completed ${formatDateTime(video.completedAt)}`}
@@ -104,97 +119,97 @@ export default async function VideoDetailPage({ params }: { params: Promise<{ id
             </Card>
           )}
 
-          {/* Progress steps */}
-          {(isProcessing || video.steps.length > 0) && (
+          {/* Live progress bar for in-flight jobs */}
+          {isProcessing && (
             <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Generation Progress</CardTitle>
-                <CardDescription>
-                  Track each step of the video creation process
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {isProcessing && (
-                  <div className="mb-6">
-                    <div className="mb-2 flex items-center justify-between text-sm">
-                      <span className="font-medium">{video.currentStep || "Processing..."}</span>
-                      <span className="text-muted-foreground">{video.progress}%</span>
-                    </div>
-                    <Progress value={video.progress} className="h-2" />
-                  </div>
-                )}
-                <JobProgressSteps steps={video.steps} />
+              <CardContent className="p-4">
+                <div className="mb-2 flex items-center justify-between text-sm">
+                  <span className="font-medium">{video.currentStep || "Processing..."}</span>
+                  <span className="text-muted-foreground">{video.progress}%</span>
+                </div>
+                <Progress value={video.progress} className="h-2" />
               </CardContent>
             </Card>
           )}
 
-          {/* Job details */}
+          {/* Job event timeline */}
+          {events.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Job Timeline</CardTitle>
+                <CardDescription>Every step of the generation pipeline</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ProgressTimeline events={events} />
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Script / Subtitles / Metadata tabs */}
           <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Job Details</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <dl className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <dt className="text-sm font-medium text-muted-foreground">Job ID</dt>
-                  <dd className="mt-1 font-mono text-sm">{video.id}</dd>
-                </div>
-                <div>
-                  <dt className="text-sm font-medium text-muted-foreground">Credits Used</dt>
-                  <dd className="mt-1 text-sm">1 credit</dd>
-                </div>
-                <div>
-                  <dt className="text-sm font-medium text-muted-foreground">Aspect Ratio</dt>
-                  <dd className="mt-1 text-sm">9:16 (Vertical)</dd>
-                </div>
-                <div>
-                  <dt className="text-sm font-medium text-muted-foreground">Target Duration</dt>
-                  <dd className="mt-1 text-sm">{video.duration || 30} seconds</dd>
-                </div>
-              </dl>
+            <CardContent className="pt-6">
+              <Tabs defaultValue="script">
+                <TabsList>
+                  <TabsTrigger value="script">
+                    <FileText className="size-4" />
+                    Script
+                  </TabsTrigger>
+                  <TabsTrigger value="subtitles">
+                    <Captions className="size-4" />
+                    Subtitles
+                  </TabsTrigger>
+                  <TabsTrigger value="metadata">
+                    <Info className="size-4" />
+                    Metadata
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="script">
+                  {video.script ? (
+                    <pre className="max-h-96 overflow-auto whitespace-pre-wrap rounded-lg bg-muted p-4 font-mono text-sm leading-relaxed">
+                      {video.script}
+                    </pre>
+                  ) : (
+                    <TabEmpty message="Script will appear here once it has been generated." />
+                  )}
+                </TabsContent>
+
+                <TabsContent value="subtitles">
+                  {video.subtitles ? (
+                    <pre className="max-h-96 overflow-auto whitespace-pre-wrap rounded-lg bg-muted p-4 font-mono text-xs leading-relaxed">
+                      {video.subtitles}
+                    </pre>
+                  ) : (
+                    <TabEmpty message="Subtitles (.srt) will appear here once generated." />
+                  )}
+                </TabsContent>
+
+                <TabsContent value="metadata">
+                  <dl className="grid gap-4 sm:grid-cols-2">
+                    {metadataRows.map((row) => (
+                      <div key={row.label}>
+                        <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                          {row.label}
+                        </dt>
+                        <dd className="mt-1 break-words font-mono text-sm">{row.value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </TabsContent>
+              </Tabs>
             </CardContent>
           </Card>
 
           {/* Actions */}
-          <div className="flex flex-wrap gap-3">
-            {isCompleted && (
-              <>
-                <Button asChild>
-                  <a href={outputUrl || "#"} download>
-                    <Download />
-                    Download Video
-                  </a>
-                </Button>
-                <Button variant="outline">
-                  <Share2 />
-                  Share
-                </Button>
-              </>
-            )}
-            {isFailed && (
-              <Button>
-                <RefreshCw />
-                Retry Generation
-              </Button>
-            )}
-            <Button variant="outline" className="text-destructive hover:bg-destructive/10 hover:text-destructive">
-              <Trash2 />
-              Delete
-            </Button>
-          </div>
+          <VideoDetailActions video={video} outputUrl={outputUrl} />
         </div>
 
         {/* Video preview */}
-        <div className="lg:sticky lg:top-24">
+        <div className="lg:sticky lg:top-24 lg:self-start">
           <Card className="overflow-hidden">
             <div className="aspect-[9/16] bg-gradient-to-br from-muted to-muted/50">
               {isCompleted && outputUrl ? (
-                <video
-                  controls
-                  src={outputUrl}
-                  className="size-full object-cover"
-                  poster={video.thumbnailUrl}
-                />
+                <video controls src={outputUrl} className="size-full object-cover" poster={video.thumbnailUrl} />
               ) : (
                 <div className="flex size-full flex-col items-center justify-center p-6 text-center">
                   {isProcessing ? (
@@ -206,12 +221,18 @@ export default async function VideoDetailPage({ params }: { params: Promise<{ id
                   ) : isFailed ? (
                     <>
                       <div className="mb-4 rounded-full bg-destructive/10 p-4">
-                        <RefreshCw className="size-8 text-destructive" />
+                        <CopyIcon className="size-8 text-destructive" />
                       </div>
                       <p className="text-sm font-medium text-destructive">Generation Failed</p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        Click retry to try again
-                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">Retry to run this job again</p>
+                    </>
+                  ) : isCompleted ? (
+                    <>
+                      <div className="mb-4 rounded-full bg-primary/10 p-4">
+                        <Play className="size-8 text-primary" />
+                      </div>
+                      <p className="text-sm font-medium">Preview unavailable</p>
+                      <p className="mt-1 text-xs text-muted-foreground">Download the file to watch it</p>
                     </>
                   ) : (
                     <>
@@ -219,9 +240,7 @@ export default async function VideoDetailPage({ params }: { params: Promise<{ id
                         <Clock className="size-8 text-muted-foreground" />
                       </div>
                       <p className="text-sm font-medium">Waiting in Queue</p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        Your video will start processing soon
-                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">Your video will start processing soon</p>
                     </>
                   )}
                 </div>
@@ -243,6 +262,14 @@ export default async function VideoDetailPage({ params }: { params: Promise<{ id
           </Card>
         </div>
       </div>
+    </div>
+  )
+}
+
+function TabEmpty({ message }: { message: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border py-12 text-center">
+      <p className="text-sm text-muted-foreground">{message}</p>
     </div>
   )
 }

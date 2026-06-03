@@ -11,12 +11,28 @@ export interface JobStep {
   completedAt?: string
 }
 
+// A single event in a job's lifecycle timeline
+export interface JobEvent {
+  id: string
+  label: string
+  status: "completed" | "processing" | "queued" | "failed"
+  timestamp?: string
+  detail?: string
+}
+
+export type Language = "English" | "Korean" | "Spanish" | "Japanese" | "Chinese"
+export type AspectRatio = "9:16" | "16:9"
+export type VoiceStyle = "Female Voice" | "Male Voice" | "Neutral Voice"
+export type SubtitleStyle = "Clean" | "Bold Viral" | "Minimal" | "Educational"
+export type MusicStyle = "None" | "Lo-fi" | "Corporate" | "Motivational"
+
 export interface Video {
   id: string
   userId: string
   prompt: string
   status: JobStatus
   steps: JobStep[]
+  events?: JobEvent[]
   currentStep?: string
   progress: number
   thumbnailUrl?: string
@@ -25,6 +41,17 @@ export interface Video {
   createdAt: string
   completedAt?: string
   error?: string
+  // Generation settings / metadata
+  language?: Language
+  aspectRatio?: AspectRatio
+  voice?: VoiceStyle
+  subtitleStyle?: SubtitleStyle
+  musicStyle?: MusicStyle
+  variants?: number
+  creditCost?: number
+  // Generated content
+  script?: string
+  subtitles?: string
 }
 
 export interface User {
@@ -86,6 +113,38 @@ export interface AdminUser extends User {
   videosCount: number
   totalSpent: number
   lastActiveAt: string
+}
+
+// Admin: queue + worker health
+export interface QueueHealth {
+  queued: number
+  processing: number
+  avgWaitSeconds: number
+  oldestQueuedAt?: string
+}
+
+export interface WorkerHealth {
+  status: "healthy" | "degraded" | "down"
+  activeWorkers: number
+  maxWorkers: number
+  region: string
+  lastHeartbeatAt: string
+}
+
+export interface FailedJob {
+  id: string
+  userEmail: string
+  topic: string
+  error: string
+  failedAt: string
+}
+
+// User notification preferences
+export interface NotificationPreferences {
+  jobCompleted: boolean
+  jobFailed: boolean
+  weeklyDigest: boolean
+  productUpdates: boolean
 }
 
 // FAQ type

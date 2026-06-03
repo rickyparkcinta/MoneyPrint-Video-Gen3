@@ -1,39 +1,46 @@
-"use client";
+"use client"
 
-import { RotateCcw, ShieldX, Wallet } from "lucide-react";
-import { useState } from "react";
+import { RotateCcw, ShieldX, Wallet } from "lucide-react"
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
 
 export function AdminJobActions({ jobId }: { jobId: string }) {
-  const [loading, setLoading] = useState<string | null>(null);
+  const [loading, setLoading] = useState<string | null>(null)
 
   async function run(action: "retry" | "cancel" | "refund") {
-    setLoading(action);
-    const response = await fetch(`/api/admin/jobs/${jobId}/${action}`, { method: "POST" });
-    const payload = (await response.json()) as { error?: string };
-    setLoading(null);
+    setLoading(action)
+    const response = await fetch(`/api/admin/jobs/${jobId}/${action}`, { method: "POST" })
+    const payload = (await response.json()) as { error?: string }
+    setLoading(null)
 
     if (!response.ok) {
-      alert(payload.error || `Could not ${action} job.`);
-      return;
+      alert(payload.error || `Could not ${action} job.`)
+      return
     }
 
-    window.location.reload();
+    window.location.reload()
   }
 
   return (
-    <div className="actions" style={{ marginTop: 0 }}>
-      <button className="button" disabled={Boolean(loading)} onClick={() => run("retry")} type="button">
-        <RotateCcw size={14} />
+    <div className="flex flex-wrap gap-2">
+      <Button size="sm" variant="outline" disabled={Boolean(loading)} onClick={() => run("retry")}>
+        <RotateCcw className="size-3.5" />
         {loading === "retry" ? "Retrying" : "Retry"}
-      </button>
-      <button className="button" disabled={Boolean(loading)} onClick={() => run("refund")} type="button">
-        <Wallet size={14} />
+      </Button>
+      <Button size="sm" variant="outline" disabled={Boolean(loading)} onClick={() => run("refund")}>
+        <Wallet className="size-3.5" />
         {loading === "refund" ? "Refunding" : "Refund"}
-      </button>
-      <button className="button danger" disabled={Boolean(loading)} onClick={() => run("cancel")} type="button">
-        <ShieldX size={14} />
+      </Button>
+      <Button
+        size="sm"
+        variant="outline"
+        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+        disabled={Boolean(loading)}
+        onClick={() => run("cancel")}
+      >
+        <ShieldX className="size-3.5" />
         {loading === "cancel" ? "Cancelling" : "Cancel"}
-      </button>
+      </Button>
     </div>
-  );
+  )
 }

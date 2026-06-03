@@ -1,4 +1,64 @@
-import type { User, Video, Plan, Transaction, Subscription, AdminStats, AdminUser, FAQ, Feature } from "./types"
+import type {
+  User,
+  Video,
+  Plan,
+  Transaction,
+  Subscription,
+  AdminStats,
+  AdminUser,
+  FAQ,
+  Feature,
+  QueueHealth,
+  WorkerHealth,
+  FailedJob,
+  NotificationPreferences,
+} from "./types"
+
+// Standard generation lifecycle events used across mock jobs
+const completedEvents = (base: string) => [
+  { id: "ev_1", label: "Job queued", status: "completed" as const, timestamp: base, detail: "Request accepted and added to the render queue" },
+  { id: "ev_2", label: "Script generated", status: "completed" as const, timestamp: addMinutes(base, 2), detail: "AI script written and approved" },
+  { id: "ev_3", label: "Voice generated", status: "completed" as const, timestamp: addMinutes(base, 5), detail: "AI voiceover synthesized" },
+  { id: "ev_4", label: "Assets fetched", status: "completed" as const, timestamp: addMinutes(base, 8), detail: "Background footage and music pulled" },
+  { id: "ev_5", label: "Subtitles generated", status: "completed" as const, timestamp: addMinutes(base, 10), detail: "Word-level captions aligned" },
+  { id: "ev_6", label: "Video rendered", status: "completed" as const, timestamp: addMinutes(base, 13), detail: "Final 1080p render assembled" },
+  { id: "ev_7", label: "Upload completed", status: "completed" as const, timestamp: addMinutes(base, 15), detail: "Video uploaded to storage and ready" },
+]
+
+function addMinutes(iso: string, minutes: number): string {
+  return new Date(new Date(iso).getTime() + minutes * 60_000).toISOString()
+}
+
+const sampleScript = `[HOOK]
+Most people waste hours every week on tasks AI can do in seconds.
+
+[POINT 1]
+First up — automated research. Feed it a topic and get a structured brief in moments.
+
+[POINT 2]
+Next, content drafting. Turn rough notes into polished copy without staring at a blank page.
+
+[POINT 3]
+And finally, scheduling. Let AI plan and queue your posts across every platform.
+
+[CTA]
+Pick one of these today and reclaim your time. Follow for more.`
+
+const sampleSubtitles = `1
+00:00:00,000 --> 00:00:03,200
+Most people waste hours every week
+
+2
+00:00:03,200 --> 00:00:06,100
+on tasks AI can do in seconds.
+
+3
+00:00:06,100 --> 00:00:09,400
+First up — automated research.
+
+4
+00:00:09,400 --> 00:00:12,800
+Feed it a topic, get a brief in moments.`
 
 // Current user mock
 export const mockUser: User = {
@@ -29,6 +89,16 @@ export const mockVideos: Video[] = [
     duration: 58,
     createdAt: "2024-12-01T10:00:00Z",
     completedAt: "2024-12-01T10:15:00Z",
+    events: completedEvents("2024-12-01T10:00:00Z"),
+    language: "English",
+    aspectRatio: "9:16",
+    voice: "Female Voice",
+    subtitleStyle: "Bold Viral",
+    musicStyle: "Lo-fi",
+    variants: 1,
+    creditCost: 2,
+    script: sampleScript,
+    subtitles: sampleSubtitles,
   },
   {
     id: "vid_2",
@@ -44,6 +114,23 @@ export const mockVideos: Video[] = [
     currentStep: "Visual Generation",
     progress: 65,
     createdAt: "2024-12-02T14:00:00Z",
+    events: [
+      { id: "ev_1", label: "Job queued", status: "completed", timestamp: "2024-12-02T14:00:00Z", detail: "Request accepted and added to the render queue" },
+      { id: "ev_2", label: "Script generated", status: "completed", timestamp: "2024-12-02T14:02:00Z", detail: "AI script written and approved" },
+      { id: "ev_3", label: "Voice generated", status: "completed", timestamp: "2024-12-02T14:05:00Z", detail: "AI voiceover synthesized" },
+      { id: "ev_4", label: "Assets fetched", status: "processing", detail: "Pulling background footage and music" },
+      { id: "ev_5", label: "Subtitles generated", status: "queued" },
+      { id: "ev_6", label: "Video rendered", status: "queued" },
+      { id: "ev_7", label: "Upload completed", status: "queued" },
+    ],
+    language: "English",
+    aspectRatio: "9:16",
+    voice: "Male Voice",
+    subtitleStyle: "Clean",
+    musicStyle: "Corporate",
+    variants: 1,
+    creditCost: 2,
+    script: sampleScript,
   },
   {
     id: "vid_3",
@@ -58,6 +145,22 @@ export const mockVideos: Video[] = [
     ],
     progress: 0,
     createdAt: "2024-12-02T15:30:00Z",
+    events: [
+      { id: "ev_1", label: "Job queued", status: "completed", timestamp: "2024-12-02T15:30:00Z", detail: "Request accepted and added to the render queue" },
+      { id: "ev_2", label: "Script generated", status: "queued" },
+      { id: "ev_3", label: "Voice generated", status: "queued" },
+      { id: "ev_4", label: "Assets fetched", status: "queued" },
+      { id: "ev_5", label: "Subtitles generated", status: "queued" },
+      { id: "ev_6", label: "Video rendered", status: "queued" },
+      { id: "ev_7", label: "Upload completed", status: "queued" },
+    ],
+    language: "English",
+    aspectRatio: "9:16",
+    voice: "Neutral Voice",
+    subtitleStyle: "Educational",
+    musicStyle: "Motivational",
+    variants: 2,
+    creditCost: 2,
   },
   {
     id: "vid_4",
@@ -73,6 +176,23 @@ export const mockVideos: Video[] = [
     progress: 25,
     createdAt: "2024-11-28T09:00:00Z",
     error: "Voice synthesis service temporarily unavailable. Credits have been refunded.",
+    events: [
+      { id: "ev_1", label: "Job queued", status: "completed", timestamp: "2024-11-28T09:00:00Z", detail: "Request accepted and added to the render queue" },
+      { id: "ev_2", label: "Script generated", status: "completed", timestamp: "2024-11-28T09:02:00Z", detail: "AI script written and approved" },
+      { id: "ev_3", label: "Voice generated", status: "failed", timestamp: "2024-11-28T09:05:00Z", detail: "Voice synthesis service temporarily unavailable" },
+      { id: "ev_4", label: "Assets fetched", status: "queued" },
+      { id: "ev_5", label: "Subtitles generated", status: "queued" },
+      { id: "ev_6", label: "Video rendered", status: "queued" },
+      { id: "ev_7", label: "Upload completed", status: "queued" },
+    ],
+    language: "English",
+    aspectRatio: "9:16",
+    voice: "Female Voice",
+    subtitleStyle: "Minimal",
+    musicStyle: "None",
+    variants: 1,
+    creditCost: 1,
+    script: sampleScript,
   },
   {
     id: "vid_5",
@@ -91,6 +211,16 @@ export const mockVideos: Video[] = [
     duration: 45,
     createdAt: "2024-11-25T16:00:00Z",
     completedAt: "2024-11-25T16:18:00Z",
+    events: completedEvents("2024-11-25T16:00:00Z"),
+    language: "English",
+    aspectRatio: "9:16",
+    voice: "Female Voice",
+    subtitleStyle: "Clean",
+    musicStyle: "Motivational",
+    variants: 1,
+    creditCost: 1,
+    script: sampleScript,
+    subtitles: sampleSubtitles,
   },
 ]
 
@@ -257,6 +387,56 @@ export const mockAdminUsers: AdminUser[] = [
     lastActiveAt: "2024-12-01T12:45:00Z",
   },
 ]
+
+// Admin: queue health mock
+export const mockQueueHealth: QueueHealth = {
+  queued: 8,
+  processing: 15,
+  avgWaitSeconds: 42,
+  oldestQueuedAt: "2024-12-02T15:24:00Z",
+}
+
+// Admin: worker health mock
+export const mockWorkerHealth: WorkerHealth = {
+  status: "healthy",
+  activeWorkers: 6,
+  maxWorkers: 10,
+  region: "us-central1",
+  lastHeartbeatAt: "2024-12-02T16:31:00Z",
+}
+
+// Admin: recent failed jobs mock
+export const mockFailedJobs: FailedJob[] = [
+  {
+    id: "vid_4",
+    userEmail: "creator@example.com",
+    topic: "The psychology behind viral content",
+    error: "Voice synthesis service temporarily unavailable",
+    failedAt: "2024-11-28T09:05:00Z",
+  },
+  {
+    id: "vid_98",
+    userEmail: "agency@example.com",
+    topic: "10 SEO mistakes killing your traffic",
+    error: "Asset provider timed out after 3 retries",
+    failedAt: "2024-12-02T11:12:00Z",
+  },
+  {
+    id: "vid_102",
+    userEmail: "john@startup.io",
+    topic: "How to validate a startup idea fast",
+    error: "Render worker out of memory",
+    failedAt: "2024-12-02T13:48:00Z",
+  },
+]
+
+// Default notification preferences mock
+export const mockNotificationPreferences: NotificationPreferences = {
+  jobCompleted: true,
+  jobFailed: true,
+  weeklyDigest: false,
+  productUpdates: true,
+}
 
 // FAQ data
 export const mockFAQs: FAQ[] = [

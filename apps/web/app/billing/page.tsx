@@ -1,12 +1,14 @@
 import type { Metadata } from "next"
 import Link from "next/link"
-import { CreditCard, Coins, Calendar, ArrowUpRight, Plus, Receipt } from "lucide-react"
+import { CreditCard, Coins, Calendar, ArrowUpRight, Receipt } from "lucide-react"
+import { CREDIT_PACK } from "@moneyprint/shared"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { Separator } from "@/components/ui/separator"
+import { CheckoutButton } from "@/components/CheckoutButton"
+import { PortalButton } from "@/components/PortalButton"
 import { formatCurrency, formatDate } from "@/lib/utils"
 import { mockUser, mockSubscription, mockTransactions, mockPlans } from "@/lib/mock-data"
 import { getSupabaseAdmin } from "@/lib/supabase/admin"
@@ -137,17 +139,40 @@ export default async function BillingPage() {
                 Renews on {formatDate(subscription.currentPeriodEnd)}
               </p>
             </div>
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-3">
               <Button variant="outline" asChild>
                 <Link href="/pricing">
                   Change Plan
                   <ArrowUpRight className="ml-1 size-4" />
                 </Link>
               </Button>
+              <PortalButton label="Open customer portal" />
               <Button variant="outline" className="text-destructive hover:bg-destructive/10 hover:text-destructive">
                 Cancel Subscription
               </Button>
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Payment method */}
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle>Payment Method</CardTitle>
+          <CardDescription>Cards are securely managed through Stripe</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-4">
+              <div className="flex h-10 w-14 items-center justify-center rounded-md border border-border bg-muted">
+                <CreditCard className="size-5 text-muted-foreground" />
+              </div>
+              <div>
+                <p className="font-medium">Visa ending in 4242</p>
+                <p className="text-sm text-muted-foreground">Expires 12/2027</p>
+              </div>
+            </div>
+            <PortalButton label="Update payment method" />
           </div>
         </CardContent>
       </Card>
@@ -161,15 +186,12 @@ export default async function BillingPage() {
         <CardContent>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="font-medium">Credit Pack</p>
+              <p className="font-medium">{CREDIT_PACK.name}</p>
               <p className="text-sm text-muted-foreground">
-                10 additional credits for $9.99
+                {CREDIT_PACK.credits} additional credits, charged once
               </p>
             </div>
-            <Button>
-              <Plus className="size-4" />
-              Buy Credits
-            </Button>
+            <CheckoutButton planId={CREDIT_PACK.id} label="Buy Credits" />
           </div>
         </CardContent>
       </Card>
