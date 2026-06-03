@@ -199,7 +199,7 @@ export default async function DashboardPage() {
                     </Link>
                   </TableCell>
                   <TableCell>
-                    <StatusBadge status={("status" in item ? item.status : item.status) as "queued" | "processing" | "completed" | "failed"} />
+                    <StatusBadge status={item.status as "queued" | "processing" | "completed" | "failed"} />
                   </TableCell>
                   <TableCell>{"credit_cost" in item ? item.credit_cost : 1}</TableCell>
                   <TableCell className="text-muted-foreground">

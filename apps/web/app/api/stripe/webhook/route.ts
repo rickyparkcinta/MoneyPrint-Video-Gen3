@@ -44,6 +44,18 @@ async function upsertSubscription(subscription: Stripe.Subscription) {
     return;
   }
 
+  // In newer Stripe API versions current_period_* live on each subscription
+  // item rather than the subscription. Read from either location.
+  const subWithPeriods = subscription as Stripe.Subscription & {
+    current_period_start?: number;
+    current_period_end?: number;
+  };
+  const firstItem = subscription.items?.data?.[0] as
+    | (Stripe.SubscriptionItem & { current_period_start?: number; current_period_end?: number })
+    | undefined;
+  const periodStart = subWithPeriods.current_period_start ?? firstItem?.current_period_start ?? null;
+  const periodEnd = subWithPeriods.current_period_end ?? firstItem?.current_period_end ?? null;
+
   await getSupabaseAdmin().from("subscriptions").upsert(
     {
       user_id: userId,
@@ -51,12 +63,8 @@ async function upsertSubscription(subscription: Stripe.Subscription) {
       stripe_customer_id: typeof subscription.customer === "string" ? subscription.customer : subscription.customer.id,
       plan_id: planId,
       status: subscription.status,
-      current_period_start: subscription.current_period_start
-        ? new Date(subscription.current_period_start * 1000).toISOString()
-        : null,
-      current_period_end: subscription.current_period_end
-        ? new Date(subscription.current_period_end * 1000).toISOString()
-        : null,
+      current_period_start: periodStart ? new Date(periodStart * 1000).toISOString() : null,
+      current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
       cancel_at_period_end: subscription.cancel_at_period_end,
       updated_at: new Date().toISOString()
     },
