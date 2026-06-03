@@ -1,23 +1,26 @@
-import Link from "next/link";
-import { AuthForm } from "@/components/AuthForm";
+import Link from "next/link"
+import type { Metadata } from "next"
+import { AuthForm } from "@/components/AuthForm"
+import { Button } from "@/components/ui/button"
+
+export const metadata: Metadata = {
+  title: "Log In",
+  description: "Sign in to your MoneyPrint account",
+}
 
 export default function LoginPage() {
   return (
-    <section className="page">
-      <h1 className="page-title">Login</h1>
-      <p className="lede">
-        Use Supabase magic-link auth. API routes read the resulting cookies before creating jobs, checkout sessions, or
-        billing portal sessions.
-      </p>
-      <AuthForm mode="login" />
-      <div className="actions">
-        <Link className="button" href="/dashboard">
-          Back to dashboard
-        </Link>
-        <Link className="button" href="/signup">
-          Create account
-        </Link>
+    <div className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center px-4 py-12">
+      <div className="w-full max-w-md space-y-6">
+        <AuthForm mode="login" />
+        
+        <div className="text-center text-sm text-muted-foreground">
+          Don&apos;t have an account?{" "}
+          <Button variant="link" asChild className="h-auto p-0 font-semibold">
+            <Link href="/signup">Sign up</Link>
+          </Button>
+        </div>
       </div>
-    </section>
-  );
+    </div>
+  )
 }
