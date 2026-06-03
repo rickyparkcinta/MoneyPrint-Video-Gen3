@@ -17,7 +17,6 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { mockFAQs } from "@/lib/mock-data"
 
 const features = [
   {
@@ -27,17 +26,17 @@ const features = [
   },
   {
     title: "Natural Voice Synthesis",
-    description: "Choose from dozens of realistic AI voices in multiple languages and accents. Your videos sound professional, every time.",
+    description: "Choose from production voice presets and let MoneyPrinterTurbo synthesize the voiceover during the render.",
     icon: Mic,
   },
   {
-    title: "Dynamic Visuals",
-    description: "Our AI generates relevant, eye-catching visuals that perfectly match your content and keep viewers engaged.",
+    title: "Stock Video Materials",
+    description: "MoneyPrinterTurbo pulls matching video materials from the configured Pexels or Pixabay provider.",
     icon: Image,
   },
   {
-    title: "One-Click Export",
-    description: "Export directly to YouTube Shorts, TikTok, or Instagram Reels format. Optimized for each platform automatically.",
+    title: "Private Downloads",
+    description: "Completed MP4 outputs are uploaded to private Supabase Storage and served through signed URLs.",
     icon: Download,
   },
   {
@@ -46,8 +45,8 @@ const features = [
     icon: Activity,
   },
   {
-    title: "Batch Processing",
-    description: "Queue multiple videos at once and let our system work while you focus on other things. Perfect for content calendars.",
+    title: "Cloud Run Worker",
+    description: "QStash dispatches each paid job to a Cloud Run Job that owns the long-running render.",
     icon: Layers,
   },
 ]
@@ -65,16 +64,28 @@ const steps = [
   },
   {
     number: "03",
-    title: "Download & Share",
-    description: "Get your video in minutes. Download in the perfect format for YouTube Shorts, TikTok, or Instagram Reels.",
+    title: "Download the Output",
+    description: "When the worker completes, the app stores your MP4 privately and gives you a signed download link.",
   },
 ]
 
-const stats = [
-  { value: "50K+", label: "Videos Created" },
-  { value: "5min", label: "Avg. Generation Time" },
-  { value: "4.9/5", label: "User Rating" },
-  { value: "99.9%", label: "Uptime" },
+const faqs = [
+  {
+    question: "What happens when I create a video?",
+    answer: "The app creates a Supabase video job, deducts credits, publishes a QStash dispatch, starts a Cloud Run Job, and renders through MoneyPrinterTurbo.",
+  },
+  {
+    question: "Do I need a credit card to try it?",
+    answer: "No. New accounts receive 5 launch credits from the Supabase signup trigger.",
+  },
+  {
+    question: "Where are generated videos stored?",
+    answer: "Completed outputs are uploaded to private Supabase Storage and served through signed URLs.",
+  },
+  {
+    question: "What renderer powers the worker?",
+    answer: "The worker uses the vendored MoneyPrinterTurbo Python app and calls its internal video task service.",
+  },
 ]
 
 export default function HomePage() {
@@ -118,7 +129,7 @@ export default function HomePage() {
             </div>
 
             <p className="mt-4 text-sm text-muted-foreground">
-              No credit card required. 3 free videos to start.
+              No credit card required. New accounts receive 5 launch credits.
             </p>
           </div>
 
@@ -130,7 +141,7 @@ export default function HomePage() {
                   <div className="mx-auto mb-4 flex size-20 items-center justify-center rounded-full bg-primary/10">
                     <Play className="size-10 text-primary" />
                   </div>
-                  <p className="text-lg font-medium text-muted-foreground">Video Preview Demo</p>
+                  <p className="text-lg font-medium text-muted-foreground">MoneyPrinterTurbo render pipeline</p>
                 </div>
               </div>
             </div>
@@ -138,29 +149,15 @@ export default function HomePage() {
             <div className="absolute -left-4 top-1/4 hidden animate-pulse-glow rounded-lg border border-primary/20 bg-card p-3 shadow-lg lg:block">
               <div className="flex items-center gap-2">
                 <CheckCircle className="size-5 text-primary" />
-                <span className="text-sm font-medium">Script Generated</span>
+                <span className="text-sm font-medium">Supabase Job Created</span>
               </div>
             </div>
             <div className="absolute -right-4 top-1/2 hidden animate-pulse-glow rounded-lg border border-primary/20 bg-card p-3 shadow-lg lg:block" style={{ animationDelay: "0.5s" }}>
               <div className="flex items-center gap-2">
                 <Activity className="size-5 text-primary" />
-                <span className="text-sm font-medium">Rendering 78%</span>
+                <span className="text-sm font-medium">Cloud Run Worker</span>
               </div>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Stats Section */}
-      <section className="border-b border-border/50 py-12">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 gap-8 lg:grid-cols-4">
-            {stats.map((stat) => (
-              <div key={stat.label} className="text-center">
-                <div className="text-3xl font-bold text-primary lg:text-4xl">{stat.value}</div>
-                <div className="mt-1 text-sm text-muted-foreground">{stat.label}</div>
-              </div>
-            ))}
           </div>
         </div>
       </section>
@@ -304,7 +301,7 @@ export default function HomePage() {
           </div>
 
           <Accordion type="single" collapsible className="mt-12">
-            {mockFAQs.map((faq, index) => (
+            {faqs.map((faq, index) => (
               <AccordionItem key={index} value={`item-${index}`}>
                 <AccordionTrigger className="text-left">{faq.question}</AccordionTrigger>
                 <AccordionContent>{faq.answer}</AccordionContent>
@@ -323,7 +320,7 @@ export default function HomePage() {
                 Ready to Create Your First Video?
               </h2>
               <p className="mx-auto mt-4 max-w-xl text-lg text-muted-foreground">
-                Join thousands of creators using MoneyPrint to grow their channels. Start with 3 free videos today.
+                Create an account, use your launch credits, and run the real MoneyPrinterTurbo-backed pipeline.
               </p>
               <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
                 <Button size="xl" asChild>

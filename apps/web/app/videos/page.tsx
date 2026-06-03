@@ -7,9 +7,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { VideoCard } from "@/components/VideoCard"
 import { StatusBadge } from "@/components/StatusBadge"
-import { mockVideos } from "@/lib/mock-data"
+import { mapVideoJobRow } from "@/lib/video-jobs"
 import { getSupabaseAdmin } from "@/lib/supabase/admin"
 import { getAuthenticatedUser } from "@/lib/supabase/server"
+import type { Video as VideoRecord } from "@/lib/types"
 
 export const metadata: Metadata = {
   title: "Videos",
@@ -17,34 +18,29 @@ export const metadata: Metadata = {
 }
 
 export default async function VideosPage() {
-  // Try to get real data, fall back to mock
-  let videos = mockVideos
+  let videos: VideoRecord[] = []
+  let isAuthenticated = false
 
   try {
     const { user } = await getAuthenticatedUser()
     if (user) {
+      isAuthenticated = true
       const { data: jobs } = await getSupabaseAdmin()
         .from("video_jobs")
-        .select("id,topic,status,credit_cost,created_at,completed_at")
+        .select("id,user_id,topic,status,progress,credit_cost,duration_seconds,aspect_ratio,created_at,completed_at,error_message")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
 
       if (jobs && jobs.length > 0) {
-        // Transform real jobs to match Video type
-        videos = jobs.map((job) => ({
-          id: job.id,
-          userId: user.id,
-          prompt: job.topic,
-          status: job.status as "queued" | "processing" | "completed" | "failed",
-          steps: [],
-          progress: job.status === "completed" ? 100 : job.status === "processing" ? 50 : 0,
-          createdAt: job.created_at,
-          completedAt: job.completed_at,
-        }))
+        videos = jobs.map((job) => mapVideoJobRow(job, user.id))
       }
     }
   } catch {
-    // Use mock data if Supabase is not configured
+    videos = []
+  }
+
+  if (!isAuthenticated) {
+    return <AuthRequired />
   }
 
   // Filter videos by status
@@ -183,5 +179,26 @@ function EmptyState({ message = "No videos found" }: { message?: string }) {
         </Button>
       </CardContent>
     </Card>
+  )
+}
+
+function AuthRequired() {
+  return (
+    <div className="mx-auto max-w-md px-4 py-24 text-center sm:px-6 lg:px-8">
+      <Card>
+        <CardContent className="flex flex-col items-center py-12">
+          <div className="mb-4 rounded-full bg-muted p-4">
+            <Plus className="size-8 text-muted-foreground" />
+          </div>
+          <CardTitle className="mb-2">Sign in to view videos</CardTitle>
+          <CardDescription className="mb-6">
+            Your generated videos are stored in your account.
+          </CardDescription>
+          <Button asChild>
+            <Link href="/login">Log in</Link>
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
   )
 }

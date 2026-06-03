@@ -4,8 +4,7 @@ import { ArrowUpRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { SettingsForm } from "@/components/SettingsForm"
-import { DeleteAccountSection } from "@/components/DeleteAccountSection"
-import { mockUser, mockNotificationPreferences } from "@/lib/mock-data"
+import { getSupabaseAdmin } from "@/lib/supabase/admin"
 import { getAuthenticatedUser } from "@/lib/supabase/server"
 
 export const metadata: Metadata = {
@@ -14,18 +13,25 @@ export const metadata: Metadata = {
 }
 
 export default async function SettingsPage() {
-  // Try to get the real user, fall back to mock for an unconfigured environment.
-  let email = mockUser.email
-  let name = mockUser.name
+  let email = ""
+  let name = ""
 
   try {
     const { user } = await getAuthenticatedUser()
-    if (user) {
-      email = user.email ?? email
-      name = (user.user_metadata?.full_name as string | undefined) ?? name
+    if (!user) {
+      return <AuthRequired />
     }
+
+    const { data: profile } = await getSupabaseAdmin()
+      .from("profiles")
+      .select("full_name,email")
+      .eq("id", user.id)
+      .single()
+
+    email = user.email ?? profile?.email ?? ""
+    name = profile?.full_name || (user.user_metadata?.full_name as string | undefined) || ""
   } catch {
-    // Use mock data if Supabase is not configured
+    return <SettingsUnavailable />
   }
 
   return (
@@ -37,11 +43,7 @@ export default async function SettingsPage() {
       </div>
 
       <div className="space-y-6">
-        <SettingsForm
-          initialName={name}
-          initialEmail={email}
-          initialPreferences={mockNotificationPreferences}
-        />
+        <SettingsForm initialName={name} initialEmail={email} />
 
         {/* Billing quick link */}
         <Card>
@@ -58,9 +60,40 @@ export default async function SettingsPage() {
             </Button>
           </CardContent>
         </Card>
-
-        <DeleteAccountSection />
       </div>
+    </div>
+  )
+}
+
+function AuthRequired() {
+  return (
+    <div className="mx-auto max-w-md px-4 py-24 text-center sm:px-6 lg:px-8">
+      <Card>
+        <CardContent className="flex flex-col items-center py-12">
+          <CardTitle className="mb-2">Sign in to manage settings</CardTitle>
+          <CardDescription className="mb-6">
+            Profile settings are tied to your account.
+          </CardDescription>
+          <Button asChild>
+            <Link href="/login">Log in</Link>
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+function SettingsUnavailable() {
+  return (
+    <div className="mx-auto max-w-md px-4 py-24 text-center sm:px-6 lg:px-8">
+      <Card>
+        <CardContent className="flex flex-col items-center py-12">
+          <CardTitle className="mb-2">Settings unavailable</CardTitle>
+          <CardDescription>
+            The profile service is not available in this deployment.
+          </CardDescription>
+        </CardContent>
+      </Card>
     </div>
   )
 }

@@ -26,4 +26,6 @@ GOOGLE_SERVICE_ACCOUNT_EMAIL=
 GOOGLE_PRIVATE_KEY=
 ```
 
+`QSTASH_DISPATCH_URL` should point to the Vercel route `/api/qstash/run-cloud-job`. That route verifies QStash and starts the Cloud Run Job execution.
+
 Never expose service-role, Stripe secret, QStash, Google, or provider keys to the browser.

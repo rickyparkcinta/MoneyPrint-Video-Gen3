@@ -16,7 +16,7 @@ import {
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { mockUser } from "@/lib/mock-data"
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser"
 import { useState } from "react"
 
 const navigation = [
@@ -27,11 +27,27 @@ const navigation = [
   { name: "Settings", href: "/settings", icon: Settings },
 ]
 
-export function Header() {
+export type HeaderViewer = {
+  name: string
+  email: string
+  initials: string
+  credits: number
+}
+
+interface HeaderProps {
+  viewer?: HeaderViewer | null
+}
+
+export function Header({ viewer }: HeaderProps) {
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const isLandingPage = pathname === "/"
   const isAuthPage = pathname === "/login" || pathname === "/signup"
+
+  async function handleSignOut() {
+    await createSupabaseBrowserClient().auth.signOut()
+    window.location.href = "/"
+  }
 
   if (isAuthPage) {
     return (
@@ -115,20 +131,33 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="hidden items-center gap-2 rounded-lg bg-secondary px-3 py-1.5 sm:flex">
-            <Coins className="size-4 text-primary" />
-            <span className="text-sm font-semibold">{mockUser.credits}</span>
-            <span className="text-xs text-muted-foreground">credits</span>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <Avatar className="size-8">
-              <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
-                {mockUser.name.split(" ").map(n => n[0]).join("")}
-              </AvatarFallback>
-            </Avatar>
-            <span className="hidden text-sm font-medium lg:inline">{mockUser.name}</span>
-          </div>
+          {viewer ? (
+            <>
+              <div className="hidden items-center gap-2 rounded-lg bg-secondary px-3 py-1.5 sm:flex">
+                <Coins className="size-4 text-primary" />
+                <span className="text-sm font-semibold">{viewer.credits}</span>
+                <span className="text-xs text-muted-foreground">credits</span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Avatar className="size-8">
+                  <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+                    {viewer.initials}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="hidden text-sm font-medium lg:inline">{viewer.name}</span>
+              </div>
+            </>
+          ) : (
+            <div className="hidden items-center gap-2 sm:flex">
+              <Button variant="ghost" size="sm" asChild>
+                <Link href="/login">Log in</Link>
+              </Button>
+              <Button size="sm" asChild>
+                <Link href="/signup">Sign up</Link>
+              </Button>
+            </div>
+          )}
 
           <Button
             variant="ghost"
@@ -164,15 +193,28 @@ export function Header() {
                 </Link>
               )
             })}
-            <div className="mt-4 flex items-center gap-2 rounded-lg bg-secondary px-3 py-2">
-              <Coins className="size-4 text-primary" />
-              <span className="text-sm font-semibold">{mockUser.credits}</span>
-              <span className="text-xs text-muted-foreground">credits remaining</span>
-            </div>
-            <Button variant="ghost" className="mt-2 justify-start gap-3 text-muted-foreground">
-              <LogOut className="size-5" />
-              Sign out
-            </Button>
+            {viewer ? (
+              <>
+                <div className="mt-4 flex items-center gap-2 rounded-lg bg-secondary px-3 py-2">
+                  <Coins className="size-4 text-primary" />
+                  <span className="text-sm font-semibold">{viewer.credits}</span>
+                  <span className="text-xs text-muted-foreground">credits remaining</span>
+                </div>
+                <Button variant="ghost" className="mt-2 justify-start gap-3 text-muted-foreground" onClick={handleSignOut}>
+                  <LogOut className="size-5" />
+                  Sign out
+                </Button>
+              </>
+            ) : (
+              <div className="mt-4 grid gap-2">
+                <Button variant="outline" asChild>
+                  <Link href="/login">Log in</Link>
+                </Button>
+                <Button asChild>
+                  <Link href="/signup">Sign up</Link>
+                </Button>
+              </div>
+            )}
           </nav>
         </div>
       )}

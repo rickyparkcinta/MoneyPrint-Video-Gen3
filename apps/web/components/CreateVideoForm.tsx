@@ -2,6 +2,7 @@
 
 import { calculateCreditCost } from "@moneyprint/shared"
 import { Loader2, Sparkles, Wand2 } from "lucide-react"
+import { useSearchParams } from "next/navigation"
 import { useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -28,7 +29,6 @@ const subtitleOptions = [
 
 const musicOptions = [
   { value: "none", label: "No Music" },
-  { value: "licensed_pack_1", label: "Licensed Pack 1" },
 ]
 
 const promptSuggestions = [
@@ -37,13 +37,26 @@ const promptSuggestions = [
   "3 morning habits of successful entrepreneurs",
 ]
 
+function supportedValue(options: Array<{ value: string }>, value: string | null, fallback: string) {
+  return value && options.some((option) => option.value === value) ? value : fallback
+}
+
 export function CreateVideoForm() {
-  const [topic, setTopic] = useState("")
+  const searchParams = useSearchParams()
+  const [topic, setTopic] = useState(() => searchParams.get("topic") || "")
   const [prompt, setPrompt] = useState("")
-  const [durationSeconds, setDurationSeconds] = useState<"30" | "60">("30")
-  const [voiceId, setVoiceId] = useState("en-US-JennyNeural-Female")
-  const [subtitleStyle, setSubtitleStyle] = useState("bold")
-  const [musicStyle, setMusicStyle] = useState("none")
+  const [durationSeconds, setDurationSeconds] = useState<"30" | "60">(() =>
+    searchParams.get("duration") === "60" ? "60" : "30"
+  )
+  const [voiceId, setVoiceId] = useState(() =>
+    supportedValue(voiceOptions, searchParams.get("voice"), "en-US-JennyNeural-Female")
+  )
+  const [subtitleStyle, setSubtitleStyle] = useState(() =>
+    supportedValue(subtitleOptions, searchParams.get("subtitle"), "bold")
+  )
+  const [musicStyle, setMusicStyle] = useState(() =>
+    supportedValue(musicOptions, searchParams.get("music"), "none")
+  )
   const [message, setMessage] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
 

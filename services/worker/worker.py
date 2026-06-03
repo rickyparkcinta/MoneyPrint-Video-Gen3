@@ -25,6 +25,17 @@ def required_env(name: str) -> str:
     return value
 
 
+def configured_video_source() -> str:
+    explicit_source = os.getenv("MONEYPRINT_VIDEO_SOURCE", "").strip().lower()
+    if explicit_source in {"pexels", "pixabay", "local"}:
+        return explicit_source
+    if os.getenv("PEXELS_API_KEY"):
+        return "pexels"
+    if os.getenv("PIXABAY_API_KEY"):
+        return "pixabay"
+    return "pexels"
+
+
 def configure_moneyprinter() -> None:
     example_path = MONEYPRINTER_HOME / "config.example.toml"
     config_path = MONEYPRINTER_HOME / "config.toml"
@@ -33,8 +44,9 @@ def configure_moneyprinter() -> None:
 
     pexels_key = os.getenv("PEXELS_API_KEY", "")
     pixabay_key = os.getenv("PIXABAY_API_KEY", "")
+    video_source = configured_video_source()
 
-    app_config["video_source"] = "pexels" if pexels_key else "pixabay"
+    app_config["video_source"] = video_source
     app_config["pexels_api_keys"] = [pexels_key] if pexels_key else []
     app_config["pixabay_api_keys"] = [pixabay_key] if pixabay_key else []
     app_config["llm_provider"] = os.getenv("MONEYPRINT_LLM_PROVIDER", "openai")
@@ -97,6 +109,7 @@ def build_video_params(job: dict[str, Any]):
         video_script="",
         video_script_prompt=job.get("prompt") or "",
         video_aspect=job.get("aspect_ratio") or "9:16",
+        video_source=configured_video_source(),
         video_language=job.get("language") or "en",
         voice_name=job.get("voice_id") or "en-US-JennyNeural-Female",
         subtitle_enabled=True,

@@ -1,21 +1,13 @@
 import type { Metadata } from "next"
-import { Users, Film, AlertTriangle, DollarSign, Activity, Server, ShieldAlert } from "lucide-react"
+import { ACTIVE_JOB_STATUSES } from "@moneyprint/shared"
+import { Users, Film, AlertTriangle, Activity, ShieldAlert } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
 import { StatCard } from "@/components/StatCard"
 import { AdminJobActions } from "@/components/AdminJobActions"
 import { AdminCreditGrant } from "@/components/AdminCreditGrant"
-import { formatCurrency, formatDateTime } from "@/lib/utils"
-import {
-  mockAdminStats,
-  mockFailedJobs,
-  mockQueueHealth,
-  mockWorkerHealth,
-  mockAdminUsers,
-} from "@/lib/mock-data"
-import type { FailedJob, WorkerHealth } from "@/lib/types"
+import { formatDateTime } from "@/lib/utils"
 import { getSupabaseAdmin } from "@/lib/supabase/admin"
 import { getAuthenticatedUser } from "@/lib/supabase/server"
 
@@ -24,53 +16,36 @@ export const metadata: Metadata = {
   description: "Operations dashboard for users, jobs, and platform health",
 }
 
-const workerStatusVariant: Record<WorkerHealth["status"], "success" | "warning" | "destructive"> = {
-  healthy: "success",
-  degraded: "warning",
-  down: "destructive",
+type FailedJob = {
+  id: string
+  userEmail: string
+  topic: string
+  error: string
+  failedAt: string
+}
+
+type AdminUserRow = {
+  id: string
+  email: string | null
+  full_name: string | null
+  role: string
+  credits: number
 }
 
 export default async function AdminPage() {
-  // When Supabase is configured we enforce the admin role; when it isn't
-  // (local/preview), we render the full mockup so the UI stays reviewable.
-  const supabaseConfigured = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL)
   let isAdmin = false
-  let failedJobs: FailedJob[] = mockFailedJobs
 
-  if (supabaseConfigured) {
-    try {
-      const { user } = await getAuthenticatedUser()
-      if (user) {
-        const admin = getSupabaseAdmin()
-        const { data: profile } = await admin.from("profiles").select("role").eq("id", user.id).single()
-        isAdmin = profile?.role === "admin"
-
-        if (isAdmin) {
-          const { data: jobs } = await admin
-            .from("video_jobs")
-            .select("id,topic,status,user_id,created_at,error_message")
-            .eq("status", "failed")
-            .order("created_at", { ascending: false })
-            .limit(25)
-
-          if (jobs && jobs.length > 0) {
-            failedJobs = jobs.map((job) => ({
-              id: job.id,
-              userEmail: job.user_id,
-              topic: job.topic,
-              error: job.error_message || "Unknown error",
-              failedAt: job.created_at,
-            }))
-          }
-        }
-      }
-    } catch {
-      // Treat config/auth errors as not-admin for safety.
-      isAdmin = false
+  try {
+    const { user } = await getAuthenticatedUser()
+    if (user) {
+      const { data: profile } = await getSupabaseAdmin().from("profiles").select("role").eq("id", user.id).single()
+      isAdmin = profile?.role === "admin"
     }
+  } catch {
+    isAdmin = false
   }
 
-  if (supabaseConfigured && !isAdmin) {
+  if (!isAdmin) {
     return (
       <div className="mx-auto flex max-w-md flex-col items-center px-4 py-24 text-center">
         <div className="mb-4 rounded-full bg-destructive/10 p-4">
@@ -84,14 +59,65 @@ export default async function AdminPage() {
     )
   }
 
-  const stats = mockAdminStats
-  const queue = mockQueueHealth
-  const worker = mockWorkerHealth
-  const workerLoadPercent = Math.round((worker.activeWorkers / worker.maxWorkers) * 100)
+  const admin = getSupabaseAdmin()
+  const activeStatuses = Array.from(ACTIVE_JOB_STATUSES)
+  const [
+    { count: totalUsers },
+    { count: totalVideos },
+    { count: activeJobs },
+    { data: failedJobRows },
+    { data: queuedRows },
+    { data: recentProfiles },
+  ] = await Promise.all([
+    admin.from("profiles").select("id", { count: "exact", head: true }),
+    admin.from("video_jobs").select("id", { count: "exact", head: true }),
+    admin.from("video_jobs").select("id", { count: "exact", head: true }).in("status", activeStatuses),
+    admin
+      .from("video_jobs")
+      .select("id,topic,status,user_id,created_at,error_message")
+      .eq("status", "failed")
+      .order("created_at", { ascending: false })
+      .limit(25),
+    admin
+      .from("video_jobs")
+      .select("id,status,created_at")
+      .in("status", activeStatuses)
+      .order("created_at", { ascending: true })
+      .limit(500),
+    admin
+      .from("profiles")
+      .select("id,email,full_name,role,created_at")
+      .order("created_at", { ascending: false })
+      .limit(10),
+  ])
+
+  const profileIds = (recentProfiles ?? []).map((profile) => profile.id)
+  const { data: balances } = profileIds.length > 0
+    ? await admin.from("credit_balances").select("user_id,balance").in("user_id", profileIds)
+    : { data: [] }
+  const balanceByUser = new Map((balances ?? []).map((balance) => [balance.user_id, balance.balance ?? 0]))
+
+  const users: AdminUserRow[] = (recentProfiles ?? []).map((profile) => ({
+    id: profile.id,
+    email: profile.email,
+    full_name: profile.full_name,
+    role: profile.role,
+    credits: balanceByUser.get(profile.id) ?? 0,
+  }))
+
+  const failedJobs: FailedJob[] = (failedJobRows ?? []).map((job) => ({
+    id: job.id,
+    userEmail: job.user_id,
+    topic: job.topic,
+    error: job.error_message || "Unknown error",
+    failedAt: job.created_at,
+  }))
+  const queuedCount = (queuedRows ?? []).filter((job) => job.status === "queued").length
+  const processingCount = (queuedRows ?? []).length - queuedCount
+  const oldestQueuedAt = queuedRows?.[0]?.created_at
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      {/* Header */}
       <div className="mb-8 flex items-center justify-between">
         <div>
           <div className="flex items-center gap-3">
@@ -104,78 +130,46 @@ export default async function AdminPage() {
         </div>
       </div>
 
-      {/* Top stats */}
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Total Users" value={stats.totalUsers.toLocaleString()} icon={Users} change={stats.usersGrowth} />
-        <StatCard label="Total Videos" value={stats.totalVideos.toLocaleString()} icon={Film} change={stats.videosGrowth} />
-        <StatCard label="Failed Jobs (24h)" value={failedJobs.length} icon={AlertTriangle} hint="Across all users" />
-        <StatCard label="Revenue (MTD)" value={formatCurrency(stats.totalRevenue)} icon={DollarSign} change={stats.revenueGrowth} />
+        <StatCard label="Total Users" value={(totalUsers ?? 0).toLocaleString()} icon={Users} />
+        <StatCard label="Total Videos" value={(totalVideos ?? 0).toLocaleString()} icon={Film} />
+        <StatCard label="Active Jobs" value={(activeJobs ?? 0).toLocaleString()} icon={Activity} />
+        <StatCard label="Failed Jobs" value={failedJobs.length} icon={AlertTriangle} hint="Most recent failed jobs" />
       </div>
 
-      {/* Health */}
-      <div className="mb-8 grid gap-4 lg:grid-cols-2">
-        {/* Queue health */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Activity className="size-4 text-primary" />
-              Queue Health
-            </CardTitle>
-            <Badge variant={queue.queued > 50 ? "warning" : "success"}>
-              {queue.queued > 50 ? "Backed up" : "Nominal"}
-            </Badge>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <div className="text-2xl font-bold">{queue.queued}</div>
-                <p className="text-xs text-muted-foreground">Queued</p>
-              </div>
-              <div>
-                <div className="text-2xl font-bold">{queue.processing}</div>
-                <p className="text-xs text-muted-foreground">Processing</p>
-              </div>
-              <div>
-                <div className="text-2xl font-bold">{queue.avgWaitSeconds}s</div>
-                <p className="text-xs text-muted-foreground">Avg wait</p>
-              </div>
+      <Card className="mb-8">
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Activity className="size-4 text-primary" />
+            Queue Health
+          </CardTitle>
+          <Badge variant={queuedCount > 50 ? "warning" : "success"}>
+            {queuedCount > 50 ? "Backed up" : "Nominal"}
+          </Badge>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+            <div>
+              <div className="text-2xl font-bold">{queuedCount}</div>
+              <p className="text-xs text-muted-foreground">Queued</p>
             </div>
-            {queue.oldestQueuedAt && (
-              <p className="mt-4 text-xs text-muted-foreground">
-                Oldest queued job since {formatDateTime(queue.oldestQueuedAt)}
-              </p>
-            )}
-          </CardContent>
-        </Card>
+            <div>
+              <div className="text-2xl font-bold">{processingCount}</div>
+              <p className="text-xs text-muted-foreground">Processing</p>
+            </div>
+            <div>
+              <div className="text-2xl font-bold">{activeJobs ?? 0}</div>
+              <p className="text-xs text-muted-foreground">Active total</p>
+            </div>
+          </div>
+          {oldestQueuedAt && (
+            <p className="mt-4 text-xs text-muted-foreground">
+              Oldest active job since {formatDateTime(oldestQueuedAt)}
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
-        {/* Worker health */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Server className="size-4 text-primary" />
-              Worker Health
-            </CardTitle>
-            <Badge variant={workerStatusVariant[worker.status]} className="capitalize">
-              {worker.status}
-            </Badge>
-          </CardHeader>
-          <CardContent>
-            <div className="mb-2 flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Active workers</span>
-              <span className="font-medium">
-                {worker.activeWorkers} / {worker.maxWorkers}
-              </span>
-            </div>
-            <Progress value={workerLoadPercent} className="h-1.5" />
-            <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
-              <span>Region {worker.region}</span>
-              <span>Heartbeat {formatDateTime(worker.lastHeartbeatAt)}</span>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Recent failed jobs */}
       <Card className="mb-8">
         <CardHeader>
           <CardTitle>Recent Failed Jobs</CardTitle>
@@ -214,12 +208,11 @@ export default async function AdminPage() {
               </TableBody>
             </Table>
           ) : (
-            <p className="py-8 text-center text-sm text-muted-foreground">No failed jobs right now. 🎉</p>
+            <p className="py-8 text-center text-sm text-muted-foreground">No failed jobs right now.</p>
           )}
         </CardContent>
       </Card>
 
-      {/* Credit adjustment + users */}
       <div className="grid gap-8 lg:grid-cols-2">
         <AdminCreditGrant />
 
@@ -229,31 +222,35 @@ export default async function AdminPage() {
             <CardDescription>Recent accounts and their credit balances</CardDescription>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>User</TableHead>
-                  <TableHead>Plan</TableHead>
-                  <TableHead className="text-right">Credits</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {mockAdminUsers.map((u) => (
-                  <TableRow key={u.id}>
-                    <TableCell>
-                      <div className="font-medium">{u.name}</div>
-                      <div className="text-xs text-muted-foreground">{u.email}</div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary" className="capitalize">
-                        {u.plan}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right font-mono">{u.credits}</TableCell>
+            {users.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>User</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead className="text-right">Credits</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {users.map((user) => (
+                    <TableRow key={user.id}>
+                      <TableCell>
+                        <div className="font-medium">{user.full_name || "Unnamed user"}</div>
+                        <div className="text-xs text-muted-foreground">{user.email || user.id}</div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary" className="capitalize">
+                          {user.role}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right font-mono">{user.credits}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <p className="py-8 text-center text-sm text-muted-foreground">No users found.</p>
+            )}
           </CardContent>
         </Card>
       </div>

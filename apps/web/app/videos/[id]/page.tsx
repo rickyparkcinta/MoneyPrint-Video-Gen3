@@ -10,9 +10,9 @@ import { StatusBadge } from "@/components/StatusBadge"
 import { ProgressTimeline } from "@/components/ProgressTimeline"
 import { VideoDetailActions } from "@/components/VideoDetailActions"
 import { formatDateTime, formatDuration } from "@/lib/utils"
-import { mockVideos } from "@/lib/mock-data"
 import type { Video } from "@/lib/types"
-import { createSignedOutputUrl } from "@/lib/jobs"
+import { createSignedOutputUrl, readStorageText } from "@/lib/jobs"
+import { mapJobEventRows, mapVideoJobRow } from "@/lib/video-jobs"
 import { getSupabaseAdmin } from "@/lib/supabase/admin"
 import { getAuthenticatedUser } from "@/lib/supabase/server"
 
@@ -24,39 +24,47 @@ export const metadata: Metadata = {
 export default async function VideoDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
 
-  // Try to get real data, fall back to mock
-  let video: Video = mockVideos.find((v) => v.id === id) || mockVideos[0]
-  let outputUrl: string | null = null
-
+  let userId: string | null = null
   try {
     const { user } = await getAuthenticatedUser()
-    if (user) {
-      const { data: job } = await getSupabaseAdmin()
-        .from("video_jobs")
-        .select("*")
-        .eq("id", id)
-        .eq("user_id", user.id)
-        .single()
-
-      if (job) {
-        video = {
-          ...video,
-          id: job.id,
-          userId: user.id,
-          prompt: job.topic,
-          status: job.status as Video["status"],
-          progress: job.progress ?? 0,
-          createdAt: job.created_at,
-          completedAt: job.completed_at,
-          error: job.error_message,
-          duration: job.duration_seconds,
-        }
-        outputUrl = await createSignedOutputUrl(job.output_path)
-      }
-    }
+    userId = user?.id ?? null
   } catch {
-    // Use mock data if Supabase is not configured
+    userId = null
   }
+
+  if (!userId) {
+    return <AuthRequired />
+  }
+
+  const admin = getSupabaseAdmin()
+  const [{ data: job, error }, { data: eventRows }] = await Promise.all([
+    admin
+      .from("video_jobs")
+      .select("*")
+      .eq("id", id)
+      .eq("user_id", userId)
+      .single(),
+    admin
+      .from("job_events")
+      .select("*")
+      .eq("job_id", id)
+      .eq("user_id", userId)
+      .order("created_at", { ascending: true }),
+  ])
+
+  if (error || !job) {
+    return <VideoNotFound />
+  }
+
+  const video: Video = mapVideoJobRow(job, userId, mapJobEventRows(eventRows ?? []))
+  const [outputUrl, script, subtitles] = await Promise.all([
+    createSignedOutputUrl(job.output_path),
+    readStorageText(job.script_path),
+    readStorageText(job.subtitles_path),
+  ])
+
+  video.script = script ?? undefined
+  video.subtitles = subtitles ?? undefined
 
   const isCompleted = video.status === "completed"
   const isProcessing = video.status === "processing"
@@ -270,6 +278,51 @@ function TabEmpty({ message }: { message: string }) {
   return (
     <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border py-12 text-center">
       <p className="text-sm text-muted-foreground">{message}</p>
+    </div>
+  )
+}
+
+function AuthRequired() {
+  return (
+    <div className="mx-auto max-w-md px-4 py-24 text-center sm:px-6 lg:px-8">
+      <Card>
+        <CardContent className="flex flex-col items-center py-12">
+          <div className="mb-4 rounded-full bg-muted p-4">
+            <Clock className="size-8 text-muted-foreground" />
+          </div>
+          <CardTitle className="mb-2">Sign in to view this video</CardTitle>
+          <CardDescription className="mb-6">
+            Video jobs and outputs are private to the account that created them.
+          </CardDescription>
+          <Button asChild>
+            <Link href="/login">Log in</Link>
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+function VideoNotFound() {
+  return (
+    <div className="mx-auto max-w-md px-4 py-24 text-center sm:px-6 lg:px-8">
+      <Card>
+        <CardContent className="flex flex-col items-center py-12">
+          <div className="mb-4 rounded-full bg-muted p-4">
+            <Info className="size-8 text-muted-foreground" />
+          </div>
+          <CardTitle className="mb-2">Video job not found</CardTitle>
+          <CardDescription className="mb-6">
+            This job either does not exist or belongs to another account.
+          </CardDescription>
+          <Button variant="outline" asChild>
+            <Link href="/videos">
+              <ArrowLeft className="size-4" />
+              Back to Videos
+            </Link>
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   )
 }

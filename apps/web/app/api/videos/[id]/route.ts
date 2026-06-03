@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createSignedOutputUrl } from "@/lib/jobs";
+import { createSignedOutputUrl, readStorageText } from "@/lib/jobs";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getAuthenticatedUser } from "@/lib/supabase/server";
 
@@ -24,8 +24,24 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     return NextResponse.json({ error: "Video job not found." }, { status: 404 });
   }
 
+  const { data: events } = await getSupabaseAdmin()
+    .from("job_events")
+    .select("*")
+    .eq("job_id", id)
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: true });
+
+  const [outputSignedUrl, script, subtitles] = await Promise.all([
+    createSignedOutputUrl(job.output_path),
+    readStorageText(job.script_path),
+    readStorageText(job.subtitles_path)
+  ]);
+
   return NextResponse.json({
     job,
-    outputSignedUrl: await createSignedOutputUrl(job.output_path)
+    events: events ?? [],
+    outputSignedUrl,
+    script,
+    subtitles
   });
 }

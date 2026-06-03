@@ -1,6 +1,6 @@
 import Link from "next/link"
 import type { Metadata } from "next"
-import { Film, Wallet, Workflow, Plus, ArrowRight, TrendingUp } from "lucide-react"
+import { Film, Wallet, Workflow, Plus, ArrowRight, TrendingUp, LayoutDashboard } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -9,9 +9,11 @@ import { Progress } from "@/components/ui/progress"
 import { StatusBadge } from "@/components/StatusBadge"
 import { VideoCard } from "@/components/VideoCard"
 import { formatDate } from "@/lib/utils"
-import { mockUser, mockVideos } from "@/lib/mock-data"
+import { BILLING_PLANS } from "@moneyprint/shared"
+import { mapVideoJobRow, toUiJobStatus } from "@/lib/video-jobs"
 import { getSupabaseAdmin } from "@/lib/supabase/admin"
 import { getAuthenticatedUser } from "@/lib/supabase/server"
+import type { Video as VideoRecord } from "@/lib/types"
 
 export const metadata: Metadata = {
   title: "Dashboard",
@@ -19,8 +21,7 @@ export const metadata: Metadata = {
 }
 
 export default async function DashboardPage() {
-  // Try to get real data, fall back to mock
-  let credits = mockUser.credits
+  let credits = 0
   let jobs: Array<{
     id: string
     topic: string
@@ -28,6 +29,9 @@ export default async function DashboardPage() {
     credit_cost: number
     created_at: string
   }> = []
+  let recentVideos: VideoRecord[] = []
+  let displayName = "Creator"
+  let currentPlanName = "Free Trial"
   let isAuthenticated = false
 
   try {
@@ -35,26 +39,43 @@ export default async function DashboardPage() {
     if (user) {
       isAuthenticated = true
       const admin = getSupabaseAdmin()
-      const [{ data: balance }, { data: realJobs }] = await Promise.all([
+      const [{ data: balance }, { data: realJobs }, { data: profile }, { data: subscriptions }] = await Promise.all([
         admin.from("credit_balances").select("balance").eq("user_id", user.id).single(),
         admin
           .from("video_jobs")
-          .select("id,topic,status,credit_cost,created_at")
+          .select("id,user_id,topic,status,progress,credit_cost,duration_seconds,aspect_ratio,created_at,completed_at,error_message")
           .eq("user_id", user.id)
           .order("created_at", { ascending: false })
           .limit(6),
+        admin.from("profiles").select("full_name,email").eq("id", user.id).single(),
+        admin
+          .from("subscriptions")
+          .select("plan_id,status")
+          .eq("user_id", user.id)
+          .in("status", ["active", "trialing"])
+          .order("created_at", { ascending: false })
+          .limit(1),
       ])
-      credits = balance?.balance ?? mockUser.credits
+      credits = balance?.balance ?? 0
+      displayName = profile?.full_name || user.user_metadata?.full_name || user.email?.split("@")[0] || "Creator"
       jobs = realJobs || []
+      recentVideos = jobs.map((job) => mapVideoJobRow(job, user.id)).slice(0, 4)
+      const activeSubscription = subscriptions?.[0]
+      currentPlanName = BILLING_PLANS.find((plan) => plan.id === activeSubscription?.plan_id)?.name || "Free Trial"
     }
   } catch {
-    // Use mock data if Supabase is not configured
+    isAuthenticated = false
   }
 
-  // Use mock videos for the grid if no real jobs
-  const recentVideos = mockVideos.slice(0, 4)
-  const completedCount = mockVideos.filter((v) => v.status === "completed").length
-  const activeCount = mockVideos.filter((v) => v.status === "processing" || v.status === "queued").length
+  if (!isAuthenticated) {
+    return <AuthRequired />
+  }
+
+  const completedCount = jobs.filter((job) => toUiJobStatus(job.status) === "completed").length
+  const activeCount = jobs.filter((job) => {
+    const status = toUiJobStatus(job.status)
+    return status === "processing" || status === "queued"
+  }).length
 
   // Calculate credit usage percentage (assuming 100 credits max for visualization)
   const maxCredits = 100
@@ -66,7 +87,7 @@ export default async function DashboardPage() {
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-            Welcome back, {mockUser.name.split(" ")[0]}
+            Welcome back, {displayName.split(" ")[0]}
           </h1>
           <p className="mt-1 text-muted-foreground">
             Here&apos;s what&apos;s happening with your videos today.
@@ -141,7 +162,7 @@ export default async function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
-              <span className="text-3xl font-bold capitalize">{mockUser.plan}</span>
+              <span className="text-3xl font-bold">{currentPlanName}</span>
               <Badge variant="secondary">Active</Badge>
             </div>
             <p className="mt-2 text-xs text-muted-foreground">
@@ -164,11 +185,29 @@ export default async function DashboardPage() {
             </Link>
           </Button>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {recentVideos.map((video) => (
-            <VideoCard key={video.id} video={video} />
-          ))}
-        </div>
+        {recentVideos.length > 0 ? (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {recentVideos.map((video) => (
+              <VideoCard key={video.id} video={video} />
+            ))}
+          </div>
+        ) : (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="mb-4 rounded-full bg-muted p-4">
+                <Film className="size-8 text-muted-foreground" />
+              </div>
+              <CardTitle className="mb-2">No videos yet</CardTitle>
+              <CardDescription className="mb-6">Create your first real render job to fill this dashboard.</CardDescription>
+              <Button asChild>
+                <Link href="/create">
+                  <Plus />
+                  Create Video
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Recent jobs table */}
@@ -188,27 +227,51 @@ export default async function DashboardPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {(jobs.length > 0 ? jobs : mockVideos.slice(0, 5)).map((item) => (
+              {jobs.map((item) => (
                 <TableRow key={item.id}>
                   <TableCell>
                     <Link
                       href={`/videos/${item.id}`}
                       className="font-medium hover:text-primary hover:underline"
                     >
-                      {"topic" in item ? item.topic : item.prompt}
+                      {item.topic}
                     </Link>
                   </TableCell>
                   <TableCell>
-                    <StatusBadge status={item.status as "queued" | "processing" | "completed" | "failed"} />
+                    <StatusBadge status={item.status} />
                   </TableCell>
-                  <TableCell>{"credit_cost" in item ? item.credit_cost : 1}</TableCell>
+                  <TableCell>{item.credit_cost}</TableCell>
                   <TableCell className="text-muted-foreground">
-                    {formatDate("created_at" in item ? item.created_at : item.createdAt)}
+                    {formatDate(item.created_at)}
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
+          {jobs.length === 0 && (
+            <p className="py-8 text-center text-sm text-muted-foreground">No activity yet.</p>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+function AuthRequired() {
+  return (
+    <div className="mx-auto max-w-md px-4 py-24 text-center sm:px-6 lg:px-8">
+      <Card>
+        <CardContent className="flex flex-col items-center py-12">
+          <div className="mb-4 rounded-full bg-muted p-4">
+            <LayoutDashboard className="size-8 text-muted-foreground" />
+          </div>
+          <CardTitle className="mb-2">Sign in to view your dashboard</CardTitle>
+          <CardDescription className="mb-6">
+            Credits, jobs, and generated videos are tied to your account.
+          </CardDescription>
+          <Button asChild>
+            <Link href="/login">Log in</Link>
+          </Button>
         </CardContent>
       </Card>
     </div>

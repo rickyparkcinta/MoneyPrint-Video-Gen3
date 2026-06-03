@@ -20,11 +20,11 @@ export interface JobEvent {
   detail?: string
 }
 
-export type Language = "English" | "Korean" | "Spanish" | "Japanese" | "Chinese"
-export type AspectRatio = "9:16" | "16:9"
-export type VoiceStyle = "Female Voice" | "Male Voice" | "Neutral Voice"
-export type SubtitleStyle = "Clean" | "Bold Viral" | "Minimal" | "Educational"
-export type MusicStyle = "None" | "Lo-fi" | "Corporate" | "Motivational"
+export type Language = string
+export type AspectRatio = string
+export type VoiceStyle = string
+export type SubtitleStyle = string
+export type MusicStyle = string
 
 export interface Video {
   id: string

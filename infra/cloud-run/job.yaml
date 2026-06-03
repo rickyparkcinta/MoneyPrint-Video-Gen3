@@ -19,7 +19,17 @@ spec:
               env:
                 - name: SUPABASE_URL
                   value: "https://YOUR_PROJECT.supabase.co"
+                - name: SUPABASE_SERVICE_ROLE_KEY
+                  value: "YOUR_SUPABASE_SERVICE_ROLE_KEY"
                 - name: SUPABASE_STORAGE_BUCKET
                   value: "videos"
                 - name: WORKER_ID
                   value: "cloud-run-worker-001"
+                - name: OPENAI_API_KEY
+                  value: "YOUR_OPENAI_API_KEY"
+                - name: PEXELS_API_KEY
+                  value: "YOUR_PEXELS_API_KEY"
+                - name: PIXABAY_API_KEY
+                  value: ""
+                - name: MONEYPRINT_VIDEO_SOURCE
+                  value: "pexels"

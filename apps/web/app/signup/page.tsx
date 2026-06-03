@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 }
 
 const benefits = [
-  "3 free videos to start",
+  "5 launch credits to start",
   "No credit card required",
   "Cancel anytime",
 ]

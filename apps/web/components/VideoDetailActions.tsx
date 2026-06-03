@@ -2,25 +2,22 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Copy, Download, RefreshCw, Share2, Trash2 } from "lucide-react"
+import { Copy, Download, RefreshCw, Share2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { Video } from "@/lib/types"
 
 interface VideoDetailActionsProps {
   video: Pick<
     Video,
-    "id" | "status" | "prompt" | "language" | "aspectRatio" | "voice" | "subtitleStyle" | "musicStyle" | "variants"
+    "id" | "status" | "prompt" | "language" | "aspectRatio" | "voice" | "subtitleStyle" | "musicStyle" | "variants" | "duration"
   >
   outputUrl?: string | null
 }
 
-/**
- * Action bar for a single video job. All handlers are placeholders that
- * simulate the eventual Supabase / QStash wiring — see lib/jobs.ts.
- */
 export function VideoDetailActions({ video, outputUrl }: VideoDetailActionsProps) {
   const router = useRouter()
   const [pending, setPending] = useState<string | null>(null)
+  const [error, setError] = useState("")
 
   const isCompleted = video.status === "completed"
   const isFailed = video.status === "failed"
@@ -31,6 +28,7 @@ export function VideoDetailActions({ video, outputUrl }: VideoDetailActionsProps
     params.set("topic", video.prompt)
     if (video.language) params.set("language", video.language)
     if (video.aspectRatio) params.set("aspectRatio", video.aspectRatio)
+    if (video.duration) params.set("duration", String(video.duration))
     if (video.voice) params.set("voice", video.voice)
     if (video.subtitleStyle) params.set("subtitle", video.subtitleStyle)
     if (video.musicStyle) params.set("music", video.musicStyle)
@@ -38,12 +36,31 @@ export function VideoDetailActions({ video, outputUrl }: VideoDetailActionsProps
     router.push(`/create?${params.toString()}`)
   }
 
-  // Placeholder: real impl re-enqueues the job via /api/videos/create + QStash.
   async function regenerate() {
     setPending("regenerate")
-    await new Promise((r) => setTimeout(r, 600))
+    setError("")
+
+    const response = await fetch("/api/videos/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        topic: video.prompt,
+        durationSeconds: video.duration === 60 ? 60 : 30,
+        voiceId: video.voice,
+        subtitleStyle: video.subtitleStyle,
+        musicStyle: video.musicStyle,
+        variants: 1,
+      }),
+    })
+    const payload = (await response.json().catch(() => null)) as { jobId?: string; error?: string } | null
+
     setPending(null)
-    router.push("/videos/mock-job-id")
+    if (!response.ok || !payload?.jobId) {
+      setError(payload?.error || "Could not queue a new render.")
+      return
+    }
+
+    router.push(`/videos/${payload.jobId}`)
   }
 
   function share() {
@@ -54,9 +71,9 @@ export function VideoDetailActions({ video, outputUrl }: VideoDetailActionsProps
 
   return (
     <div className="flex flex-wrap gap-3">
-      {isCompleted && (
+      {isCompleted && outputUrl && (
         <Button asChild>
-          <a href={outputUrl || "#"} download>
+          <a href={outputUrl} download>
             <Download />
             Download Video
           </a>
@@ -82,14 +99,7 @@ export function VideoDetailActions({ video, outputUrl }: VideoDetailActionsProps
         </Button>
       )}
 
-      <Button
-        variant="outline"
-        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-        onClick={() => router.push("/videos")}
-      >
-        <Trash2 />
-        Delete
-      </Button>
+      {error && <p className="basis-full text-sm text-destructive">{error}</p>}
     </div>
   )
 }

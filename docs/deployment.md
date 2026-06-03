@@ -9,7 +9,7 @@ Local build is intentionally skipped for this workspace.
 3. Deploy `apps/web` to Vercel.
 4. Build and deploy the worker image to Google Cloud Run Jobs.
 5. Set `QSTASH_DISPATCH_URL` to the deployed Vercel route `/api/qstash/run-cloud-job`.
-6. Create one test user, grant/buy credits, and run a fake then real render job.
+6. Create one test user, grant/buy credits, and run a real render job.
 
 ## Required Hosted Checks
 

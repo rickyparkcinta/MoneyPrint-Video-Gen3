@@ -16,3 +16,20 @@ export async function createSignedOutputUrl(outputPath: string | null) {
 
   return data.signedUrl;
 }
+
+export async function readStorageText(storagePath: string | null) {
+  if (!storagePath) {
+    return null;
+  }
+
+  const { data, error } = await getSupabaseAdmin()
+    .storage
+    .from(process.env.SUPABASE_STORAGE_BUCKET || "videos")
+    .download(storagePath);
+
+  if (error || !data) {
+    return null;
+  }
+
+  return data.text();
+}
