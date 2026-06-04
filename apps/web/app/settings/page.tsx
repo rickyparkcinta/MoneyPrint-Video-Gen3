@@ -6,6 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { SettingsForm } from "@/components/SettingsForm"
 import { getSupabaseAdmin } from "@/lib/supabase/admin"
 import { getAuthenticatedUser } from "@/lib/supabase/server"
+import { getI18n } from "@/lib/i18n-server"
+import type { Dictionary } from "@/lib/i18n"
 
 export const metadata: Metadata = {
   title: "Settings",
@@ -13,13 +15,14 @@ export const metadata: Metadata = {
 }
 
 export default async function SettingsPage() {
+  const { dict } = await getI18n()
   let email = ""
   let name = ""
 
   try {
     const { user } = await getAuthenticatedUser()
     if (!user) {
-      return <AuthRequired />
+      return <AuthRequired dict={dict} />
     }
 
     const { data: profile } = await getSupabaseAdmin()
@@ -31,15 +34,15 @@ export default async function SettingsPage() {
     email = user.email ?? profile?.email ?? ""
     name = profile?.full_name || (user.user_metadata?.full_name as string | undefined) || ""
   } catch {
-    return <SettingsUnavailable />
+    return <SettingsUnavailable dict={dict} />
   }
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Settings</h1>
-        <p className="mt-1 text-muted-foreground">Manage your profile, notifications, and account.</p>
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{dict.settings.title}</h1>
+        <p className="mt-1 text-muted-foreground">{dict.settings.subtitle}</p>
       </div>
 
       <div className="space-y-6">
@@ -48,13 +51,13 @@ export default async function SettingsPage() {
         {/* Billing quick link */}
         <Card>
           <CardHeader>
-            <CardTitle>Billing</CardTitle>
-            <CardDescription>Manage your plan, credits, and payment method</CardDescription>
+            <CardTitle>{dict.common.billing}</CardTitle>
+            <CardDescription>{dict.settings.billingDescription}</CardDescription>
           </CardHeader>
           <CardContent>
             <Button variant="outline" asChild>
               <Link href="/billing">
-                Go to billing
+                {dict.settings.goBilling}
                 <ArrowUpRight className="size-4" />
               </Link>
             </Button>
@@ -65,17 +68,17 @@ export default async function SettingsPage() {
   )
 }
 
-function AuthRequired() {
+function AuthRequired({ dict }: { dict: Dictionary }) {
   return (
     <div className="mx-auto max-w-md px-4 py-24 text-center sm:px-6 lg:px-8">
       <Card>
         <CardContent className="flex flex-col items-center py-12">
-          <CardTitle className="mb-2">Sign in to manage settings</CardTitle>
+          <CardTitle className="mb-2">{dict.settings.authTitle}</CardTitle>
           <CardDescription className="mb-6">
-            Profile settings are tied to your account.
+            {dict.settings.authDescription}
           </CardDescription>
           <Button asChild>
-            <Link href="/login">Log in</Link>
+            <Link href="/login">{dict.common.login}</Link>
           </Button>
         </CardContent>
       </Card>
@@ -83,14 +86,14 @@ function AuthRequired() {
   )
 }
 
-function SettingsUnavailable() {
+function SettingsUnavailable({ dict }: { dict: Dictionary }) {
   return (
     <div className="mx-auto max-w-md px-4 py-24 text-center sm:px-6 lg:px-8">
       <Card>
         <CardContent className="flex flex-col items-center py-12">
-          <CardTitle className="mb-2">Settings unavailable</CardTitle>
+          <CardTitle className="mb-2">{dict.settings.unavailableTitle}</CardTitle>
           <CardDescription>
-            The profile service is not available in this deployment.
+            {dict.settings.unavailableDescription}
           </CardDescription>
         </CardContent>
       </Card>

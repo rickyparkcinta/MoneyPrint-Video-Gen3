@@ -12,6 +12,8 @@ import { PortalButton } from "@/components/PortalButton"
 import { formatCurrency, formatDate } from "@/lib/utils"
 import { getSupabaseAdmin } from "@/lib/supabase/admin"
 import { getAuthenticatedUser } from "@/lib/supabase/server"
+import { getI18n } from "@/lib/i18n-server"
+import { interpolate, type Dictionary } from "@/lib/i18n"
 
 export const metadata: Metadata = {
   title: "Billing",
@@ -36,6 +38,7 @@ type CreditTransactionRow = {
 }
 
 export default async function BillingPage() {
+  const { locale, dict } = await getI18n()
   let credits = 0
   let subscription: SubscriptionRow | null = null
   let transactions: CreditTransactionRow[] = []
@@ -43,7 +46,7 @@ export default async function BillingPage() {
   try {
     const { user } = await getAuthenticatedUser()
     if (!user) {
-      return <AuthRequired />
+      return <AuthRequired dict={dict} />
     }
 
     const admin = getSupabaseAdmin()
@@ -67,7 +70,7 @@ export default async function BillingPage() {
     subscription = subscriptions?.[0] ?? null
     transactions = transactionRows ?? []
   } catch {
-    return <BillingUnavailable />
+    return <BillingUnavailable dict={dict} />
   }
 
   const currentPlan = BILLING_PLANS.find((plan) => plan.id === subscription?.plan_id) || BILLING_PLANS[0]
@@ -82,9 +85,9 @@ export default async function BillingPage() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Billing & Subscription</h1>
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{dict.billing.title}</h1>
         <p className="mt-1 text-muted-foreground">
-          Manage your subscription, credits, and payment methods.
+          {dict.billing.subtitle}
         </p>
       </div>
 
@@ -92,7 +95,7 @@ export default async function BillingPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Available Credits
+              {dict.create.availableCredits}
             </CardTitle>
             <Coins className="size-4 text-muted-foreground" />
           </CardHeader>
@@ -102,7 +105,7 @@ export default async function BillingPage() {
               <Progress value={creditUsagePercent} className="h-1.5" />
             </div>
             <p className="mt-2 text-xs text-muted-foreground">
-              Current account balance
+              {dict.billing.accountBalance}
             </p>
           </CardContent>
         </Card>
@@ -110,7 +113,7 @@ export default async function BillingPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Current Plan
+              {dict.billing.currentPlan}
             </CardTitle>
             <CreditCard className="size-4 text-muted-foreground" />
           </CardHeader>
@@ -122,7 +125,7 @@ export default async function BillingPage() {
               </Badge>
             </div>
             <p className="mt-2 text-xs text-muted-foreground">
-              {formatCurrency(currentPlan.priceUsd * 100)}/month
+              {formatCurrency(currentPlan.priceUsd * 100, locale)}{dict.pricing.perMonth}
             </p>
           </CardContent>
         </Card>
@@ -130,14 +133,16 @@ export default async function BillingPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Next Billing Date
+              {dict.billing.nextBillingDate}
             </CardTitle>
             <Calendar className="size-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{daysUntilRenewal ?? "-"}</div>
             <p className="mt-2 text-xs text-muted-foreground">
-              {periodEnd ? `days until ${formatDate(periodEnd)}` : "No paid subscription on file"}
+              {periodEnd
+                ? interpolate(dict.billing.daysUntil, { date: formatDate(periodEnd, locale) })
+                : dict.billing.noSubscription}
             </p>
           </CardContent>
         </Card>
@@ -145,35 +150,40 @@ export default async function BillingPage() {
 
       <Card className="mb-8">
         <CardHeader>
-          <CardTitle>Subscription</CardTitle>
-          <CardDescription>Manage your current plan and billing preferences</CardDescription>
+          <CardTitle>{dict.billing.subscription}</CardTitle>
+          <CardDescription>{dict.billing.subscriptionDescription}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-lg font-semibold">{currentPlan.name} Plan</h3>
+                <h3 className="text-lg font-semibold">{interpolate(dict.billing.planLabel, { plan: currentPlan.name })}</h3>
                 <Badge variant={subscriptionStatus === "active" || subscriptionStatus === "trialing" ? "success" : "secondary"}>
                   {subscriptionStatus}
                 </Badge>
               </div>
               <p className="mt-1 text-sm text-muted-foreground">
-                {currentPlan.monthlyCredits} credits per month · {formatCurrency(currentPlan.priceUsd * 100)}/month
+                {interpolate(dict.billing.planLine, {
+                  credits: currentPlan.monthlyCredits,
+                  price: formatCurrency(currentPlan.priceUsd * 100, locale),
+                })}
               </p>
               {periodEnd && (
                 <p className="mt-2 text-xs text-muted-foreground">
-                  {subscription?.cancel_at_period_end ? "Ends" : "Renews"} on {formatDate(periodEnd)}
+                  {interpolate(subscription?.cancel_at_period_end ? dict.billing.endsOn : dict.billing.renewsOn, {
+                    date: formatDate(periodEnd, locale),
+                  })}
                 </p>
               )}
             </div>
             <div className="flex flex-wrap gap-3">
               <Button variant="outline" asChild>
                 <Link href="/pricing">
-                  Change Plan
+                  {dict.common.changePlan}
                   <ArrowUpRight className="ml-1 size-4" />
                 </Link>
               </Button>
-              <PortalButton label="Open customer portal" />
+              <PortalButton label={dict.billing.portal} />
             </div>
           </div>
         </CardContent>
@@ -181,8 +191,8 @@ export default async function BillingPage() {
 
       <Card className="mb-8">
         <CardHeader>
-          <CardTitle>Payment Method</CardTitle>
-          <CardDescription>Cards and invoices are managed through Stripe</CardDescription>
+          <CardTitle>{dict.billing.paymentMethod}</CardTitle>
+          <CardDescription>{dict.billing.paymentDescription}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -191,53 +201,53 @@ export default async function BillingPage() {
                 <CreditCard className="size-5 text-muted-foreground" />
               </div>
               <div>
-                <p className="font-medium">Stripe billing portal</p>
-                <p className="text-sm text-muted-foreground">View payment methods, invoices, and subscription changes in Stripe.</p>
+                <p className="font-medium">{dict.billing.stripePortal}</p>
+                <p className="text-sm text-muted-foreground">{dict.billing.stripePortalDescription}</p>
               </div>
             </div>
-            <PortalButton label="Manage in Stripe" />
+            <PortalButton label={dict.billing.manageStripe} />
           </div>
         </CardContent>
       </Card>
 
       <Card className="mb-8">
         <CardHeader>
-          <CardTitle>Need More Credits?</CardTitle>
-          <CardDescription>Top up your account with a one-time credit pack</CardDescription>
+          <CardTitle>{dict.billing.moreCredits}</CardTitle>
+          <CardDescription>{dict.billing.moreCreditsDescription}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="font-medium">{CREDIT_PACK.name}</p>
               <p className="text-sm text-muted-foreground">
-                {CREDIT_PACK.credits} additional credits, charged once
+                {interpolate(dict.billing.creditPackLine, { credits: CREDIT_PACK.credits })}
               </p>
             </div>
-            <CheckoutButton planId={CREDIT_PACK.id} label="Buy Credits" />
+            <CheckoutButton planId={CREDIT_PACK.id} label={dict.common.buyCredits} />
           </div>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Credit History</CardTitle>
-          <CardDescription>Your recent credit grants, deductions, and refunds</CardDescription>
+          <CardTitle>{dict.billing.creditHistory}</CardTitle>
+          <CardDescription>{dict.billing.creditHistoryDescription}</CardDescription>
         </CardHeader>
         <CardContent>
           {transactions.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Credits</TableHead>
-                  <TableHead>Date</TableHead>
+                  <TableHead>{dict.billing.description}</TableHead>
+                  <TableHead>{dict.billing.type}</TableHead>
+                  <TableHead>{dict.common.credits}</TableHead>
+                  <TableHead>{dict.billing.date}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {transactions.map((transaction) => (
                   <TableRow key={transaction.id}>
-                    <TableCell className="font-medium">{transactionDescription(transaction)}</TableCell>
+                    <TableCell className="font-medium">{transactionDescription(transaction, dict)}</TableCell>
                     <TableCell>
                       <Badge
                         variant={
@@ -266,7 +276,7 @@ export default async function BillingPage() {
                       </span>
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {formatDate(transaction.created_at)}
+                      {formatDate(transaction.created_at, locale)}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -275,7 +285,7 @@ export default async function BillingPage() {
           ) : (
             <div className="flex flex-col items-center py-12 text-center">
               <Receipt className="mb-3 size-8 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">No credit transactions yet.</p>
+              <p className="text-sm text-muted-foreground">{dict.billing.noTransactions}</p>
             </div>
           )}
         </CardContent>
@@ -284,26 +294,30 @@ export default async function BillingPage() {
   )
 }
 
-function transactionDescription(transaction: CreditTransactionRow): string {
+function transactionDescription(transaction: CreditTransactionRow, dict: Dictionary): string {
   if (transaction.source === "free_trial") {
-    return "Free trial credits"
+    return dict.billing.transaction.freeTrial
   }
   if (transaction.source === "credit_pack") {
-    return "Credit pack purchase"
+    return dict.billing.transaction.creditPack
   }
   if (transaction.source === "subscription_renewal") {
-    return "Subscription renewal"
+    return dict.billing.transaction.renewal
   }
   if (transaction.source === "video_job" || transaction.source === "video_generation") {
-    return transaction.video_job_id ? `Video generation ${transaction.video_job_id.slice(0, 8)}` : "Video generation"
+    return transaction.video_job_id
+      ? interpolate(dict.billing.transaction.videoWithId, { id: transaction.video_job_id.slice(0, 8) })
+      : dict.billing.transaction.video
   }
   if (transaction.source === "video_job_failed" || transaction.source === "render_failure") {
-    return transaction.video_job_id ? `Refund for ${transaction.video_job_id.slice(0, 8)}` : "Render refund"
+    return transaction.video_job_id
+      ? interpolate(dict.billing.transaction.refundWithId, { id: transaction.video_job_id.slice(0, 8) })
+      : dict.billing.transaction.refund
   }
-  return transaction.source?.replaceAll("_", " ") || "Credit transaction"
+  return transaction.source?.replaceAll("_", " ") || dict.billing.transaction.generic
 }
 
-function AuthRequired() {
+function AuthRequired({ dict }: { dict: Dictionary }) {
   return (
     <div className="mx-auto max-w-md px-4 py-24 text-center sm:px-6 lg:px-8">
       <Card>
@@ -311,12 +325,12 @@ function AuthRequired() {
           <div className="mb-4 rounded-full bg-muted p-4">
             <CreditCard className="size-8 text-muted-foreground" />
           </div>
-          <CardTitle className="mb-2">Sign in to manage billing</CardTitle>
+          <CardTitle className="mb-2">{dict.billing.authTitle}</CardTitle>
           <CardDescription className="mb-6">
-            Billing, credits, and Stripe customer records are tied to your account.
+            {dict.billing.authDescription}
           </CardDescription>
           <Button asChild>
-            <Link href="/login">Log in</Link>
+            <Link href="/login">{dict.common.login}</Link>
           </Button>
         </CardContent>
       </Card>
@@ -324,7 +338,7 @@ function AuthRequired() {
   )
 }
 
-function BillingUnavailable() {
+function BillingUnavailable({ dict }: { dict: Dictionary }) {
   return (
     <div className="mx-auto max-w-md px-4 py-24 text-center sm:px-6 lg:px-8">
       <Card>
@@ -332,9 +346,9 @@ function BillingUnavailable() {
           <div className="mb-4 rounded-full bg-muted p-4">
             <CreditCard className="size-8 text-muted-foreground" />
           </div>
-          <CardTitle className="mb-2">Billing unavailable</CardTitle>
+          <CardTitle className="mb-2">{dict.billing.unavailableTitle}</CardTitle>
           <CardDescription>
-            The billing tables or environment variables are not available in this deployment.
+            {dict.billing.unavailableDescription}
           </CardDescription>
         </CardContent>
       </Card>

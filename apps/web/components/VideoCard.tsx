@@ -1,3 +1,5 @@
+"use client"
+
 import Link from "next/link"
 import { Card, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
@@ -5,12 +7,14 @@ import { StatusBadge } from "@/components/StatusBadge"
 import { formatDate, formatDuration } from "@/lib/utils"
 import type { Video } from "@/lib/types"
 import { Play, Clock } from "lucide-react"
+import { useI18n } from "@/components/I18nProvider"
 
 interface VideoCardProps {
   video: Video
 }
 
 export function VideoCard({ video }: VideoCardProps) {
+  const { locale, dict } = useI18n()
   const isCompleted = video.status === "completed"
   const isProcessing = video.status === "processing"
   const isQueued = video.status === "queued"
@@ -40,13 +44,13 @@ export function VideoCard({ video }: VideoCardProps) {
                 <>
                   <Clock className="size-10 text-muted-foreground" />
                   <span className="text-sm font-medium text-muted-foreground">
-                    In Queue
+                    {dict.videosPage.inQueue}
                   </span>
                 </>
               )}
               {video.status === "failed" && (
                 <span className="text-sm font-medium text-destructive">
-                  Generation Failed
+                  {dict.videosPage.generationFailed}
                 </span>
               )}
             </div>
@@ -79,7 +83,7 @@ export function VideoCard({ video }: VideoCardProps) {
           
           <div className="flex items-center justify-between">
             <span className="text-xs text-muted-foreground">
-              {formatDate(video.createdAt)}
+              {formatDate(video.createdAt, locale)}
             </span>
             <StatusBadge status={video.status} showIcon={false} />
           </div>

@@ -13,6 +13,8 @@ import { BILLING_PLANS } from "@moneyprint/shared"
 import { mapVideoJobRow, toUiJobStatus } from "@/lib/video-jobs"
 import { getSupabaseAdmin } from "@/lib/supabase/admin"
 import { getAuthenticatedUser } from "@/lib/supabase/server"
+import { getI18n } from "@/lib/i18n-server"
+import { interpolate, type Dictionary } from "@/lib/i18n"
 import type { Video as VideoRecord } from "@/lib/types"
 
 export const metadata: Metadata = {
@@ -21,6 +23,7 @@ export const metadata: Metadata = {
 }
 
 export default async function DashboardPage() {
+  const { locale, dict } = await getI18n()
   let credits = 0
   let jobs: Array<{
     id: string
@@ -30,8 +33,8 @@ export default async function DashboardPage() {
     created_at: string
   }> = []
   let recentVideos: VideoRecord[] = []
-  let displayName = "Creator"
-  let currentPlanName = "Free Trial"
+  let displayName = dict.dashboard.creator
+  let currentPlanName = dict.dashboard.freeTrial
   let isAuthenticated = false
 
   try {
@@ -57,18 +60,18 @@ export default async function DashboardPage() {
           .limit(1),
       ])
       credits = balance?.balance ?? 0
-      displayName = profile?.full_name || user.user_metadata?.full_name || user.email?.split("@")[0] || "Creator"
+      displayName = profile?.full_name || user.user_metadata?.full_name || user.email?.split("@")[0] || dict.dashboard.creator
       jobs = realJobs || []
       recentVideos = jobs.map((job) => mapVideoJobRow(job, user.id)).slice(0, 4)
       const activeSubscription = subscriptions?.[0]
-      currentPlanName = BILLING_PLANS.find((plan) => plan.id === activeSubscription?.plan_id)?.name || "Free Trial"
+      currentPlanName = BILLING_PLANS.find((plan) => plan.id === activeSubscription?.plan_id)?.name || dict.dashboard.freeTrial
     }
   } catch {
     isAuthenticated = false
   }
 
   if (!isAuthenticated) {
-    return <AuthRequired />
+    return <AuthRequired dict={dict} />
   }
 
   const completedCount = jobs.filter((job) => toUiJobStatus(job.status) === "completed").length
@@ -87,16 +90,16 @@ export default async function DashboardPage() {
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-            Welcome back, {displayName.split(" ")[0]}
+            {interpolate(dict.dashboard.title, { name: displayName.split(" ")[0] })}
           </h1>
           <p className="mt-1 text-muted-foreground">
-            Here&apos;s what&apos;s happening with your videos today.
+            {dict.dashboard.subtitle}
           </p>
         </div>
         <Button size="lg" asChild>
           <Link href="/create">
             <Plus />
-            Create Video
+            {dict.common.createVideo}
           </Link>
         </Button>
       </div>
@@ -106,7 +109,7 @@ export default async function DashboardPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Available Credits
+              {dict.dashboard.availableCredits}
             </CardTitle>
             <Wallet className="size-4 text-muted-foreground" />
           </CardHeader>
@@ -117,7 +120,7 @@ export default async function DashboardPage() {
             </div>
             <p className="mt-2 text-xs text-muted-foreground">
               <Link href="/pricing" className="text-primary hover:underline">
-                Buy more credits
+                {dict.dashboard.buyMoreCredits}
               </Link>
             </p>
           </CardContent>
@@ -126,14 +129,14 @@ export default async function DashboardPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Active Jobs
+              {dict.dashboard.activeJobs}
             </CardTitle>
             <Workflow className="size-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{activeCount}</div>
             <p className="mt-2 text-xs text-muted-foreground">
-              {activeCount > 0 ? "Videos currently processing" : "No active jobs"}
+              {activeCount > 0 ? dict.dashboard.activeJobsHint : dict.dashboard.noActiveJobs}
             </p>
           </CardContent>
         </Card>
@@ -141,14 +144,14 @@ export default async function DashboardPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Completed Videos
+              {dict.dashboard.completedVideos}
             </CardTitle>
             <Film className="size-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{completedCount}</div>
             <p className="mt-2 text-xs text-muted-foreground">
-              Total videos generated
+              {dict.dashboard.completedHint}
             </p>
           </CardContent>
         </Card>
@@ -156,18 +159,18 @@ export default async function DashboardPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Current Plan
+              {dict.dashboard.currentPlan}
             </CardTitle>
             <TrendingUp className="size-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
               <span className="text-3xl font-bold">{currentPlanName}</span>
-              <Badge variant="secondary">Active</Badge>
+              <Badge variant="secondary">{dict.common.active}</Badge>
             </div>
             <p className="mt-2 text-xs text-muted-foreground">
               <Link href="/billing" className="text-primary hover:underline">
-                Manage subscription
+                {dict.dashboard.manageSubscription}
               </Link>
             </p>
           </CardContent>
@@ -177,10 +180,10 @@ export default async function DashboardPage() {
       {/* Recent videos grid */}
       <div className="mb-8">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Recent Videos</h2>
+          <h2 className="text-lg font-semibold">{dict.dashboard.recentVideos}</h2>
           <Button variant="ghost" size="sm" asChild>
             <Link href="/videos">
-              View all
+              {dict.common.viewAll}
               <ArrowRight className="ml-1 size-4" />
             </Link>
           </Button>
@@ -197,12 +200,12 @@ export default async function DashboardPage() {
               <div className="mb-4 rounded-full bg-muted p-4">
                 <Film className="size-8 text-muted-foreground" />
               </div>
-              <CardTitle className="mb-2">No videos yet</CardTitle>
-              <CardDescription className="mb-6">Create your first real render job to fill this dashboard.</CardDescription>
+              <CardTitle className="mb-2">{dict.dashboard.noVideosTitle}</CardTitle>
+              <CardDescription className="mb-6">{dict.dashboard.noVideosDescription}</CardDescription>
               <Button asChild>
                 <Link href="/create">
                   <Plus />
-                  Create Video
+                  {dict.common.createVideo}
                 </Link>
               </Button>
             </CardContent>
@@ -213,17 +216,17 @@ export default async function DashboardPage() {
       {/* Recent jobs table */}
       <Card>
         <CardHeader>
-          <CardTitle>Recent Activity</CardTitle>
-          <CardDescription>Your latest video generation jobs</CardDescription>
+          <CardTitle>{dict.dashboard.recentActivity}</CardTitle>
+          <CardDescription>{dict.dashboard.recentActivityDescription}</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Topic</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Credits</TableHead>
-                <TableHead>Created</TableHead>
+                <TableHead>{dict.dashboard.topic}</TableHead>
+                <TableHead>{dict.dashboard.status}</TableHead>
+                <TableHead>{dict.common.credits}</TableHead>
+                <TableHead>{dict.dashboard.created}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -242,14 +245,14 @@ export default async function DashboardPage() {
                   </TableCell>
                   <TableCell>{item.credit_cost}</TableCell>
                   <TableCell className="text-muted-foreground">
-                    {formatDate(item.created_at)}
+                    {formatDate(item.created_at, locale)}
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
           {jobs.length === 0 && (
-            <p className="py-8 text-center text-sm text-muted-foreground">No activity yet.</p>
+            <p className="py-8 text-center text-sm text-muted-foreground">{dict.common.noActivity}</p>
           )}
         </CardContent>
       </Card>
@@ -257,7 +260,7 @@ export default async function DashboardPage() {
   )
 }
 
-function AuthRequired() {
+function AuthRequired({ dict }: { dict: Dictionary }) {
   return (
     <div className="mx-auto max-w-md px-4 py-24 text-center sm:px-6 lg:px-8">
       <Card>
@@ -265,12 +268,12 @@ function AuthRequired() {
           <div className="mb-4 rounded-full bg-muted p-4">
             <LayoutDashboard className="size-8 text-muted-foreground" />
           </div>
-          <CardTitle className="mb-2">Sign in to view your dashboard</CardTitle>
+          <CardTitle className="mb-2">{dict.dashboard.authTitle}</CardTitle>
           <CardDescription className="mb-6">
-            Credits, jobs, and generated videos are tied to your account.
+            {dict.dashboard.authDescription}
           </CardDescription>
           <Button asChild>
-            <Link href="/login">Log in</Link>
+            <Link href="/login">{dict.common.login}</Link>
           </Button>
         </CardContent>
       </Card>

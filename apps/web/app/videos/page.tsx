@@ -10,6 +10,8 @@ import { StatusBadge } from "@/components/StatusBadge"
 import { mapVideoJobRow } from "@/lib/video-jobs"
 import { getSupabaseAdmin } from "@/lib/supabase/admin"
 import { getAuthenticatedUser } from "@/lib/supabase/server"
+import { getI18n } from "@/lib/i18n-server"
+import { type Dictionary } from "@/lib/i18n"
 import type { Video as VideoRecord } from "@/lib/types"
 
 export const metadata: Metadata = {
@@ -18,6 +20,7 @@ export const metadata: Metadata = {
 }
 
 export default async function VideosPage() {
+  const { dict } = await getI18n()
   let videos: VideoRecord[] = []
   let isAuthenticated = false
 
@@ -40,7 +43,7 @@ export default async function VideosPage() {
   }
 
   if (!isAuthenticated) {
-    return <AuthRequired />
+    return <AuthRequired dict={dict} />
   }
 
   // Filter videos by status
@@ -54,15 +57,15 @@ export default async function VideosPage() {
       {/* Header */}
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Your Videos</h1>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{dict.videosPage.title}</h1>
           <p className="mt-1 text-muted-foreground">
-            View and manage all your generated videos
+            {dict.videosPage.subtitle}
           </p>
         </div>
         <Button size="lg" asChild>
           <Link href="/create">
             <Plus />
-            Create Video
+            {dict.common.createVideo}
           </Link>
         </Button>
       </div>
@@ -71,11 +74,11 @@ export default async function VideosPage() {
       <div className="mb-6 flex flex-col gap-4 sm:flex-row">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder="Search videos..." className="pl-10" />
+          <Input placeholder={dict.videosPage.search} className="pl-10" />
         </div>
         <Button variant="outline">
           <Filter className="size-4" />
-          Filters
+          {dict.common.filters}
         </Button>
       </div>
 
@@ -83,7 +86,7 @@ export default async function VideosPage() {
       <div className="mb-6 flex flex-wrap gap-3">
         <div className="flex items-center gap-2 rounded-lg bg-muted px-3 py-1.5">
           <span className="text-sm font-medium">{allVideos.length}</span>
-          <span className="text-sm text-muted-foreground">Total</span>
+          <span className="text-sm text-muted-foreground">{dict.common.total}</span>
         </div>
         <div className="flex items-center gap-2 rounded-lg bg-muted px-3 py-1.5">
           <StatusBadge status="processing" showIcon={false} />
@@ -102,10 +105,10 @@ export default async function VideosPage() {
       {/* Tabs */}
       <Tabs defaultValue="all" className="w-full">
         <TabsList>
-          <TabsTrigger value="all">All ({allVideos.length})</TabsTrigger>
-          <TabsTrigger value="processing">In Progress ({processingVideos.length})</TabsTrigger>
-          <TabsTrigger value="completed">Completed ({completedVideos.length})</TabsTrigger>
-          <TabsTrigger value="failed">Failed ({failedVideos.length})</TabsTrigger>
+          <TabsTrigger value="all">{dict.common.all} ({allVideos.length})</TabsTrigger>
+          <TabsTrigger value="processing">{dict.common.inProgress} ({processingVideos.length})</TabsTrigger>
+          <TabsTrigger value="completed">{dict.common.completed} ({completedVideos.length})</TabsTrigger>
+          <TabsTrigger value="failed">{dict.common.failed} ({failedVideos.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="all">
@@ -116,7 +119,7 @@ export default async function VideosPage() {
               ))}
             </div>
           ) : (
-            <EmptyState />
+            <EmptyState dict={dict} />
           )}
         </TabsContent>
 
@@ -128,7 +131,7 @@ export default async function VideosPage() {
               ))}
             </div>
           ) : (
-            <EmptyState message="No videos currently processing" />
+            <EmptyState dict={dict} message={dict.videosPage.noProcessing} />
           )}
         </TabsContent>
 
@@ -140,7 +143,7 @@ export default async function VideosPage() {
               ))}
             </div>
           ) : (
-            <EmptyState message="No completed videos yet" />
+            <EmptyState dict={dict} message={dict.videosPage.noCompleted} />
           )}
         </TabsContent>
 
@@ -152,7 +155,7 @@ export default async function VideosPage() {
               ))}
             </div>
           ) : (
-            <EmptyState message="No failed videos" />
+            <EmptyState dict={dict} message={dict.videosPage.noFailed} />
           )}
         </TabsContent>
       </Tabs>
@@ -160,7 +163,7 @@ export default async function VideosPage() {
   )
 }
 
-function EmptyState({ message = "No videos found" }: { message?: string }) {
+function EmptyState({ dict, message = dict.videosPage.empty }: { dict: Dictionary; message?: string }) {
   return (
     <Card className="mt-8">
       <CardContent className="flex flex-col items-center justify-center py-16 text-center">
@@ -169,12 +172,12 @@ function EmptyState({ message = "No videos found" }: { message?: string }) {
         </div>
         <CardTitle className="mb-2">{message}</CardTitle>
         <CardDescription className="mb-6">
-          Create your first video to get started
+          {dict.videosPage.emptyDescription}
         </CardDescription>
         <Button asChild>
           <Link href="/create">
             <Plus />
-            Create Video
+            {dict.common.createVideo}
           </Link>
         </Button>
       </CardContent>
@@ -182,7 +185,7 @@ function EmptyState({ message = "No videos found" }: { message?: string }) {
   )
 }
 
-function AuthRequired() {
+function AuthRequired({ dict }: { dict: Dictionary }) {
   return (
     <div className="mx-auto max-w-md px-4 py-24 text-center sm:px-6 lg:px-8">
       <Card>
@@ -190,12 +193,12 @@ function AuthRequired() {
           <div className="mb-4 rounded-full bg-muted p-4">
             <Plus className="size-8 text-muted-foreground" />
           </div>
-          <CardTitle className="mb-2">Sign in to view videos</CardTitle>
+          <CardTitle className="mb-2">{dict.videosPage.authTitle}</CardTitle>
           <CardDescription className="mb-6">
-            Your generated videos are stored in your account.
+            {dict.videosPage.authDescription}
           </CardDescription>
           <Button asChild>
-            <Link href="/login">Log in</Link>
+            <Link href="/login">{dict.common.login}</Link>
           </Button>
         </CardContent>
       </Card>

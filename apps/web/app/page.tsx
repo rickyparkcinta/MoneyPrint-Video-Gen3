@@ -17,78 +17,25 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { getI18n } from "@/lib/i18n-server"
 
-const features = [
-  {
-    title: "AI Script Generation",
-    description: "Transform your ideas into engaging scripts with our advanced AI. Just describe your topic and watch the magic happen.",
-    icon: Sparkles,
-  },
-  {
-    title: "Natural Voice Synthesis",
-    description: "Choose from production voice presets and let MoneyPrinterTurbo synthesize the voiceover during the render.",
-    icon: Mic,
-  },
-  {
-    title: "Stock Video Materials",
-    description: "MoneyPrinterTurbo pulls matching video materials from the configured Pexels or Pixabay provider.",
-    icon: Image,
-  },
-  {
-    title: "Private Downloads",
-    description: "Completed MP4 outputs are uploaded to private Supabase Storage and served through signed URLs.",
-    icon: Download,
-  },
-  {
-    title: "Real-Time Progress",
-    description: "Track every step of your video generation with live updates. Know exactly when your content will be ready.",
-    icon: Activity,
-  },
-  {
-    title: "Cloud Run Worker",
-    description: "QStash dispatches each paid job to a Cloud Run Job that owns the long-running render.",
-    icon: Layers,
-  },
-]
+const featureIcons = [Sparkles, Mic, Image, Download, Activity, Layers]
+const benefitIcons = [Clock, Shield, Zap, CheckCircle]
 
-const steps = [
-  {
-    number: "01",
-    title: "Enter Your Idea",
-    description: "Describe your video topic in a few words. Add optional directions for tone, style, or specific points to cover.",
-  },
-  {
-    number: "02",
-    title: "AI Does the Work",
-    description: "Our AI writes the script, generates visuals, synthesizes voice, and assembles everything into a polished video.",
-  },
-  {
-    number: "03",
-    title: "Download the Output",
-    description: "When the worker completes, the app stores your MP4 privately and gives you a signed download link.",
-  },
-]
+export default async function HomePage() {
+  const { dict } = await getI18n()
+  const features = dict.home.features.map(([title, description], index) => ({
+    title,
+    description,
+    icon: featureIcons[index] ?? Sparkles,
+  }))
+  const steps = dict.home.steps.map(([number, title, description]) => ({ number, title, description }))
+  const benefits = dict.home.benefits.map((text, index) => ({
+    text,
+    icon: benefitIcons[index] ?? CheckCircle,
+  }))
+  const faqs = dict.home.faqs.map(([question, answer]) => ({ question, answer }))
 
-const faqs = [
-  {
-    question: "What happens when I create a video?",
-    answer: "The app creates a Supabase video job, deducts credits, publishes a QStash dispatch, starts a Cloud Run Job, and renders through MoneyPrinterTurbo.",
-  },
-  {
-    question: "Do I need a credit card to try it?",
-    answer: "No. New accounts receive 5 launch credits from the Supabase signup trigger.",
-  },
-  {
-    question: "Where are generated videos stored?",
-    answer: "Completed outputs are uploaded to private Supabase Storage and served through signed URLs.",
-  },
-  {
-    question: "What renderer powers the worker?",
-    answer: "The worker uses the vendored MoneyPrinterTurbo Python app and calls its internal video task service.",
-  },
-]
-
-export default function HomePage() {
   return (
     <div className="relative">
       {/* Hero Section */}
@@ -100,36 +47,35 @@ export default function HomePage() {
           <div className="mx-auto max-w-3xl text-center">
             <Badge variant="secondary" className="mb-6">
               <Zap className="mr-1 size-3" />
-              Powered by Advanced AI
+              {dict.home.badge}
             </Badge>
             
             <h1 className="text-balance text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
-              Create Viral Short Videos{" "}
-              <span className="text-gradient">in Minutes</span>
+              {dict.home.titleA}{" "}
+              {dict.home.titleB && <span className="text-gradient">{dict.home.titleB}</span>}
             </h1>
             
             <p className="mx-auto mt-6 max-w-2xl text-pretty text-lg leading-relaxed text-muted-foreground">
-              Transform your ideas into professional faceless videos for YouTube Shorts, TikTok, and Instagram Reels. 
-              No editing skills required — just describe your topic and let AI do the rest.
+              {dict.home.subtitle}
             </p>
 
             <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
               <Button size="xl" asChild>
                 <Link href="/signup">
-                  Start Creating Free
+                  {dict.home.primaryCta}
                   <ArrowRight />
                 </Link>
               </Button>
               <Button size="xl" variant="outline" asChild>
                 <Link href="#how-it-works">
                   <Play className="size-4" />
-                  See How It Works
+                  {dict.home.secondaryCta}
                 </Link>
               </Button>
             </div>
 
             <p className="mt-4 text-sm text-muted-foreground">
-              No credit card required. New accounts receive 5 launch credits.
+              {dict.home.note}
             </p>
           </div>
 
@@ -141,7 +87,7 @@ export default function HomePage() {
                   <div className="mx-auto mb-4 flex size-20 items-center justify-center rounded-full bg-primary/10">
                     <Play className="size-10 text-primary" />
                   </div>
-                  <p className="text-lg font-medium text-muted-foreground">MoneyPrinterTurbo render pipeline</p>
+                  <p className="text-lg font-medium text-muted-foreground">{dict.home.preview}</p>
                 </div>
               </div>
             </div>
@@ -149,13 +95,13 @@ export default function HomePage() {
             <div className="absolute -left-4 top-1/4 hidden animate-pulse-glow rounded-lg border border-primary/20 bg-card p-3 shadow-lg lg:block">
               <div className="flex items-center gap-2">
                 <CheckCircle className="size-5 text-primary" />
-                <span className="text-sm font-medium">Supabase Job Created</span>
+                <span className="text-sm font-medium">{dict.home.jobCreated}</span>
               </div>
             </div>
             <div className="absolute -right-4 top-1/2 hidden animate-pulse-glow rounded-lg border border-primary/20 bg-card p-3 shadow-lg lg:block" style={{ animationDelay: "0.5s" }}>
               <div className="flex items-center gap-2">
                 <Activity className="size-5 text-primary" />
-                <span className="text-sm font-medium">Cloud Run Worker</span>
+                <span className="text-sm font-medium">{dict.home.worker}</span>
               </div>
             </div>
           </div>
@@ -166,12 +112,12 @@ export default function HomePage() {
       <section id="features" className="py-20 lg:py-32">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-2xl text-center">
-            <Badge variant="secondary" className="mb-4">Features</Badge>
+            <Badge variant="secondary" className="mb-4">{dict.home.featuresBadge}</Badge>
             <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              Everything You Need to Create Amazing Videos
+              {dict.home.featuresTitle}
             </h2>
             <p className="mt-4 text-lg text-muted-foreground">
-              Our AI handles every step of video creation so you can focus on growing your audience.
+              {dict.home.featuresSubtitle}
             </p>
           </div>
 
@@ -195,12 +141,12 @@ export default function HomePage() {
       <section id="how-it-works" className="border-y border-border/50 bg-muted/30 py-20 lg:py-32">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-2xl text-center">
-            <Badge variant="secondary" className="mb-4">How It Works</Badge>
+            <Badge variant="secondary" className="mb-4">{dict.home.howBadge}</Badge>
             <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              Three Simple Steps to Your Video
+              {dict.home.howTitle}
             </h2>
             <p className="mt-4 text-lg text-muted-foreground">
-              From idea to published content in minutes, not hours.
+              {dict.home.howSubtitle}
             </p>
           </div>
 
@@ -224,7 +170,7 @@ export default function HomePage() {
           <div className="mt-12 text-center">
             <Button size="lg" asChild>
               <Link href="/create">
-                Try It Now
+                {dict.home.tryNow}
                 <ArrowRight />
               </Link>
             </Button>
@@ -237,21 +183,16 @@ export default function HomePage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid items-center gap-12 lg:grid-cols-2">
             <div>
-              <Badge variant="secondary" className="mb-4">Why MoneyPrint</Badge>
+              <Badge variant="secondary" className="mb-4">{dict.home.whyBadge}</Badge>
               <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-                Built for Creators Who Value Their Time
+                {dict.home.whyTitle}
               </h2>
               <p className="mt-4 text-lg text-muted-foreground">
-                Stop spending hours editing. Our AI creates professional videos that engage viewers and grow your channel.
+                {dict.home.whySubtitle}
               </p>
 
               <ul className="mt-8 space-y-4">
-                {[
-                  { icon: Clock, text: "Save 10+ hours per video compared to manual editing" },
-                  { icon: Shield, text: "100% commercial rights to all generated content" },
-                  { icon: Zap, text: "Priority queue for faster generation times" },
-                  { icon: CheckCircle, text: "Automatic refunds if generation fails" },
-                ].map((item) => (
+                {benefits.map((item) => (
                   <li key={item.text} className="flex items-start gap-3">
                     <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10">
                       <item.icon className="size-3.5 text-primary" />
@@ -264,7 +205,7 @@ export default function HomePage() {
               <div className="mt-8">
                 <Button size="lg" asChild>
                   <Link href="/pricing">
-                    View Pricing
+                    {dict.header.pricing}
                     <ArrowRight />
                   </Link>
                 </Button>
@@ -279,7 +220,7 @@ export default function HomePage() {
                       <div key={i} className="aspect-[9/16] w-24 rounded-lg bg-card shadow-lg" />
                     ))}
                   </div>
-                  <p className="text-sm text-muted-foreground">Your video library grows fast</p>
+                  <p className="text-sm text-muted-foreground">{dict.common.videos}</p>
                 </div>
               </div>
             </div>
@@ -291,12 +232,12 @@ export default function HomePage() {
       <section id="faq" className="border-t border-border/50 bg-muted/30 py-20 lg:py-32">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <Badge variant="secondary" className="mb-4">FAQ</Badge>
+            <Badge variant="secondary" className="mb-4">{dict.home.faqBadge}</Badge>
             <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              Frequently Asked Questions
+              {dict.home.faqTitle}
             </h2>
             <p className="mt-4 text-lg text-muted-foreground">
-              Everything you need to know about MoneyPrint Video Gen.
+              {dict.home.featuresSubtitle}
             </p>
           </div>
 
@@ -317,20 +258,20 @@ export default function HomePage() {
           <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 via-background to-background p-8 text-center lg:p-16">
             <div className="relative z-10">
               <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-                Ready to Create Your First Video?
+                {dict.home.finalTitle}
               </h2>
               <p className="mx-auto mt-4 max-w-xl text-lg text-muted-foreground">
-                Create an account, use your launch credits, and run the real MoneyPrinterTurbo-backed pipeline.
+                {dict.home.finalSubtitle}
               </p>
               <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
                 <Button size="xl" asChild>
                   <Link href="/signup">
-                    Get Started Free
+                    {dict.home.primaryCta}
                     <ArrowRight />
                   </Link>
                 </Button>
                 <Button size="xl" variant="outline" asChild>
-                  <Link href="/pricing">View Pricing</Link>
+                  <Link href="/pricing">{dict.header.pricing}</Link>
                 </Button>
               </div>
             </div>
@@ -349,13 +290,13 @@ export default function HomePage() {
               <span className="font-semibold">MoneyPrint Video Gen</span>
             </div>
             <nav className="flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground">
-              <Link href="/pricing" className="transition-colors hover:text-foreground">Pricing</Link>
-              <Link href="#features" className="transition-colors hover:text-foreground">Features</Link>
-              <Link href="#faq" className="transition-colors hover:text-foreground">FAQ</Link>
-              <Link href="/login" className="transition-colors hover:text-foreground">Log in</Link>
+              <Link href="/pricing" className="transition-colors hover:text-foreground">{dict.header.pricing}</Link>
+              <Link href="#features" className="transition-colors hover:text-foreground">{dict.header.features}</Link>
+              <Link href="#faq" className="transition-colors hover:text-foreground">{dict.header.faq}</Link>
+              <Link href="/login" className="transition-colors hover:text-foreground">{dict.common.login}</Link>
             </nav>
             <p className="text-sm text-muted-foreground">
-              &copy; {new Date().getFullYear()} MoneyPrint. All rights reserved.
+              &copy; {new Date().getFullYear()} MoneyPrint.
             </p>
           </div>
         </div>

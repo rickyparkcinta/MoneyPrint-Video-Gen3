@@ -7,6 +7,7 @@ import { Coins } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { getSupabaseAdmin } from "@/lib/supabase/admin"
 import { getAuthenticatedUser } from "@/lib/supabase/server"
+import { getI18n } from "@/lib/i18n-server"
 
 export const metadata: Metadata = {
   title: "Create Video",
@@ -14,6 +15,7 @@ export const metadata: Metadata = {
 }
 
 export default async function CreatePage() {
+  const { dict } = await getI18n()
   let credits = 0
   let isAuthenticated = false
 
@@ -37,10 +39,10 @@ export default async function CreatePage() {
       {/* Header */}
       <div className="mb-8 text-center">
         <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-          Create a New Video
+          {dict.create.title}
         </h1>
         <p className="mt-2 text-muted-foreground">
-          Describe your video idea and let AI handle the rest.
+          {dict.create.subtitle}
         </p>
       </div>
 
@@ -52,15 +54,15 @@ export default async function CreatePage() {
               <Coins className="size-5 text-primary" />
             </div>
             <div>
-              <p className="text-sm font-medium">Available Credits</p>
+              <p className="text-sm font-medium">{dict.create.availableCredits}</p>
               <p className="text-xs text-muted-foreground">
-                30 seconds costs 1 credit. 60 seconds costs 2 credits.
+                {dict.create.creditsHelp}
               </p>
             </div>
           </div>
           <div className="text-right">
             <span className="text-2xl font-bold">{credits}</span>
-            <span className="ml-1 text-sm text-muted-foreground">credits</span>
+            <span className="ml-1 text-sm text-muted-foreground">{dict.common.credits}</span>
           </div>
         </CardContent>
       </Card>
@@ -74,10 +76,10 @@ export default async function CreatePage() {
         <Card>
           <CardContent className="flex flex-col items-center py-12 text-center">
             <p className="mb-6 text-sm text-muted-foreground">
-              Sign in before queueing a real render job.
+              {dict.create.authMessage}
             </p>
             <Button asChild>
-              <Link href="/login">Log in</Link>
+              <Link href="/login">{dict.common.login}</Link>
             </Button>
           </CardContent>
         </Card>

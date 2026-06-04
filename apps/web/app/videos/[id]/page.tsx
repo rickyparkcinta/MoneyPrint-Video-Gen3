@@ -15,6 +15,8 @@ import { createSignedOutputUrl, readStorageText } from "@/lib/jobs"
 import { mapJobEventRows, mapVideoJobRow } from "@/lib/video-jobs"
 import { getSupabaseAdmin } from "@/lib/supabase/admin"
 import { getAuthenticatedUser } from "@/lib/supabase/server"
+import { getI18n } from "@/lib/i18n-server"
+import { interpolate, type Dictionary } from "@/lib/i18n"
 
 export const metadata: Metadata = {
   title: "Video Details",
@@ -22,6 +24,7 @@ export const metadata: Metadata = {
 }
 
 export default async function VideoDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { locale, dict } = await getI18n()
   const { id } = await params
 
   let userId: string | null = null
@@ -33,7 +36,7 @@ export default async function VideoDetailPage({ params }: { params: Promise<{ id
   }
 
   if (!userId) {
-    return <AuthRequired />
+    return <AuthRequired dict={dict} />
   }
 
   const admin = getSupabaseAdmin()
@@ -53,7 +56,7 @@ export default async function VideoDetailPage({ params }: { params: Promise<{ id
   ])
 
   if (error || !job) {
-    return <VideoNotFound />
+    return <VideoNotFound dict={dict} />
   }
 
   const video: Video = mapVideoJobRow(job, userId, mapJobEventRows(eventRows ?? []))
@@ -72,16 +75,16 @@ export default async function VideoDetailPage({ params }: { params: Promise<{ id
   const events = video.events ?? []
 
   const metadataRows: Array<{ label: string; value: string }> = [
-    { label: "Job ID", value: video.id },
-    { label: "Status", value: video.status },
-    { label: "Language", value: video.language ?? "English" },
-    { label: "Aspect Ratio", value: video.aspectRatio === "16:9" ? "16:9 (Horizontal)" : "9:16 (Vertical)" },
-    { label: "Target Duration", value: `${video.duration ?? 30} seconds` },
-    { label: "Voice", value: video.voice ?? "Female Voice" },
-    { label: "Subtitle Style", value: video.subtitleStyle ?? "Clean" },
-    { label: "Music", value: video.musicStyle ?? "None" },
-    { label: "Variants", value: String(video.variants ?? 1) },
-    { label: "Credits Used", value: `${video.creditCost ?? 1} credit${(video.creditCost ?? 1) === 1 ? "" : "s"}` },
+    { label: dict.videoDetail.labels.jobId, value: video.id },
+    { label: dict.videoDetail.labels.status, value: video.status },
+    { label: dict.videoDetail.labels.language, value: video.language ?? dict.videoDetail.english },
+    { label: dict.videoDetail.labels.aspectRatio, value: video.aspectRatio === "16:9" ? dict.videoDetail.horizontal : dict.videoDetail.vertical },
+    { label: dict.videoDetail.labels.targetDuration, value: interpolate(dict.videoDetail.seconds, { count: video.duration ?? 30 }) },
+    { label: dict.videoDetail.labels.voice, value: video.voice ?? dict.videoDetail.femaleVoice },
+    { label: dict.videoDetail.labels.subtitleStyle, value: video.subtitleStyle ?? dict.videoDetail.clean },
+    { label: dict.videoDetail.labels.music, value: video.musicStyle ?? dict.videoDetail.none },
+    { label: dict.videoDetail.labels.variants, value: String(video.variants ?? 1) },
+    { label: dict.videoDetail.labels.creditsUsed, value: interpolate((video.creditCost ?? 1) === 1 ? dict.create.oneCredit : dict.create.manyCredits, { count: video.creditCost ?? 1 }) },
   ]
 
   return (
@@ -91,7 +94,7 @@ export default async function VideoDetailPage({ params }: { params: Promise<{ id
         <Button variant="ghost" size="sm" asChild>
           <Link href="/videos">
             <ArrowLeft className="size-4" />
-            Back to Videos
+            {dict.common.backToVideos}
           </Link>
         </Button>
       </div>
@@ -113,8 +116,8 @@ export default async function VideoDetailPage({ params }: { params: Promise<{ id
             </div>
             <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{video.prompt}</h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              Created {formatDateTime(video.createdAt)}
-              {video.completedAt && ` • Completed ${formatDateTime(video.completedAt)}`}
+              {dict.videoDetail.created} {formatDateTime(video.createdAt, locale)}
+              {video.completedAt && ` - ${dict.videoDetail.completed} ${formatDateTime(video.completedAt, locale)}`}
             </p>
           </div>
 
@@ -132,7 +135,7 @@ export default async function VideoDetailPage({ params }: { params: Promise<{ id
             <Card>
               <CardContent className="p-4">
                 <div className="mb-2 flex items-center justify-between text-sm">
-                  <span className="font-medium">{video.currentStep || "Processing..."}</span>
+                  <span className="font-medium">{video.currentStep || dict.videoDetail.processing}</span>
                   <span className="text-muted-foreground">{video.progress}%</span>
                 </div>
                 <Progress value={video.progress} className="h-2" />
@@ -144,8 +147,8 @@ export default async function VideoDetailPage({ params }: { params: Promise<{ id
           {events.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Job Timeline</CardTitle>
-                <CardDescription>Every step of the generation pipeline</CardDescription>
+                <CardTitle className="text-lg">{dict.videoDetail.timeline}</CardTitle>
+                <CardDescription>{dict.videoDetail.timelineDescription}</CardDescription>
               </CardHeader>
               <CardContent>
                 <ProgressTimeline events={events} />
@@ -160,15 +163,15 @@ export default async function VideoDetailPage({ params }: { params: Promise<{ id
                 <TabsList>
                   <TabsTrigger value="script">
                     <FileText className="size-4" />
-                    Script
+                    {dict.videoDetail.script}
                   </TabsTrigger>
                   <TabsTrigger value="subtitles">
                     <Captions className="size-4" />
-                    Subtitles
+                    {dict.videoDetail.subtitles}
                   </TabsTrigger>
                   <TabsTrigger value="metadata">
                     <Info className="size-4" />
-                    Metadata
+                    {dict.videoDetail.metadata}
                   </TabsTrigger>
                 </TabsList>
 
@@ -178,7 +181,7 @@ export default async function VideoDetailPage({ params }: { params: Promise<{ id
                       {video.script}
                     </pre>
                   ) : (
-                    <TabEmpty message="Script will appear here once it has been generated." />
+                    <TabEmpty message={dict.videoDetail.scriptEmpty} />
                   )}
                 </TabsContent>
 
@@ -188,7 +191,7 @@ export default async function VideoDetailPage({ params }: { params: Promise<{ id
                       {video.subtitles}
                     </pre>
                   ) : (
-                    <TabEmpty message="Subtitles (.srt) will appear here once generated." />
+                    <TabEmpty message={dict.videoDetail.subtitlesEmpty} />
                   )}
                 </TabsContent>
 
@@ -223,32 +226,32 @@ export default async function VideoDetailPage({ params }: { params: Promise<{ id
                   {isProcessing ? (
                     <>
                       <div className="mb-4 size-16 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-                      <p className="text-sm font-medium">{video.currentStep || "Generating..."}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">{video.progress}% complete</p>
+                      <p className="text-sm font-medium">{video.currentStep || dict.videoDetail.generating}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{video.progress}% {dict.videoDetail.complete}</p>
                     </>
                   ) : isFailed ? (
                     <>
                       <div className="mb-4 rounded-full bg-destructive/10 p-4">
                         <CopyIcon className="size-8 text-destructive" />
                       </div>
-                      <p className="text-sm font-medium text-destructive">Generation Failed</p>
-                      <p className="mt-1 text-xs text-muted-foreground">Retry to run this job again</p>
+                      <p className="text-sm font-medium text-destructive">{dict.videoDetail.failedTitle}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{dict.videoDetail.retryHint}</p>
                     </>
                   ) : isCompleted ? (
                     <>
                       <div className="mb-4 rounded-full bg-primary/10 p-4">
                         <Play className="size-8 text-primary" />
                       </div>
-                      <p className="text-sm font-medium">Preview unavailable</p>
-                      <p className="mt-1 text-xs text-muted-foreground">Download the file to watch it</p>
+                      <p className="text-sm font-medium">{dict.videoDetail.previewUnavailable}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{dict.videoDetail.downloadHint}</p>
                     </>
                   ) : (
                     <>
                       <div className="mb-4 rounded-full bg-muted p-4">
                         <Clock className="size-8 text-muted-foreground" />
                       </div>
-                      <p className="text-sm font-medium">Waiting in Queue</p>
-                      <p className="mt-1 text-xs text-muted-foreground">Your video will start processing soon</p>
+                      <p className="text-sm font-medium">{dict.videoDetail.waiting}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{dict.videoDetail.waitingHint}</p>
                     </>
                   )}
                 </div>
@@ -282,7 +285,7 @@ function TabEmpty({ message }: { message: string }) {
   )
 }
 
-function AuthRequired() {
+function AuthRequired({ dict }: { dict: Dictionary }) {
   return (
     <div className="mx-auto max-w-md px-4 py-24 text-center sm:px-6 lg:px-8">
       <Card>
@@ -290,12 +293,12 @@ function AuthRequired() {
           <div className="mb-4 rounded-full bg-muted p-4">
             <Clock className="size-8 text-muted-foreground" />
           </div>
-          <CardTitle className="mb-2">Sign in to view this video</CardTitle>
+          <CardTitle className="mb-2">{dict.videoDetail.authTitle}</CardTitle>
           <CardDescription className="mb-6">
-            Video jobs and outputs are private to the account that created them.
+            {dict.videoDetail.authDescription}
           </CardDescription>
           <Button asChild>
-            <Link href="/login">Log in</Link>
+            <Link href="/login">{dict.common.login}</Link>
           </Button>
         </CardContent>
       </Card>
@@ -303,7 +306,7 @@ function AuthRequired() {
   )
 }
 
-function VideoNotFound() {
+function VideoNotFound({ dict }: { dict: Dictionary }) {
   return (
     <div className="mx-auto max-w-md px-4 py-24 text-center sm:px-6 lg:px-8">
       <Card>
@@ -311,14 +314,14 @@ function VideoNotFound() {
           <div className="mb-4 rounded-full bg-muted p-4">
             <Info className="size-8 text-muted-foreground" />
           </div>
-          <CardTitle className="mb-2">Video job not found</CardTitle>
+          <CardTitle className="mb-2">{dict.videoDetail.notFoundTitle}</CardTitle>
           <CardDescription className="mb-6">
-            This job either does not exist or belongs to another account.
+            {dict.videoDetail.notFoundDescription}
           </CardDescription>
           <Button variant="outline" asChild>
             <Link href="/videos">
               <ArrowLeft className="size-4" />
-              Back to Videos
+              {dict.common.backToVideos}
             </Link>
           </Button>
         </CardContent>

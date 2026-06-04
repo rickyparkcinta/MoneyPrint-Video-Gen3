@@ -1,6 +1,9 @@
 import type { Metadata, Viewport } from "next"
 import { Inter } from "next/font/google"
 import { Header, type HeaderViewer } from "@/components/Header"
+import { I18nProvider } from "@/components/I18nProvider"
+import { getI18n } from "@/lib/i18n-server"
+import { htmlLang } from "@/lib/i18n"
 import { getSupabaseAdmin } from "@/lib/supabase/admin"
 import { getAuthenticatedUser } from "@/lib/supabase/server"
 import "./globals.css"
@@ -70,15 +73,18 @@ function initialsForName(value: string): string {
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const { locale, dict } = await getI18n()
   const viewer = await getHeaderViewer()
 
   return (
-    <html lang="en" className={`${inter.variable} bg-background`}>
+    <html lang={htmlLang(locale)} className={`${inter.variable} bg-background`}>
       <body className="min-h-screen font-sans antialiased">
-        <div className="relative flex min-h-screen flex-col">
-          <Header viewer={viewer} />
-          <main className="flex-1">{children}</main>
-        </div>
+        <I18nProvider locale={locale} dict={dict}>
+          <div className="relative flex min-h-screen flex-col">
+            <Header viewer={viewer} />
+            <main className="flex-1">{children}</main>
+          </div>
+        </I18nProvider>
       </body>
     </html>
   )

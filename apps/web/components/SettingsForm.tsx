@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { useI18n } from "@/components/I18nProvider"
 
 interface SettingsFormProps {
   initialName: string
@@ -13,6 +14,7 @@ interface SettingsFormProps {
 }
 
 export function SettingsForm({ initialName, initialEmail }: SettingsFormProps) {
+  const { dict } = useI18n()
   const [name, setName] = useState(initialName)
   const [email] = useState(initialEmail)
   const [savingProfile, setSavingProfile] = useState(false)
@@ -34,7 +36,7 @@ export function SettingsForm({ initialName, initialEmail }: SettingsFormProps) {
 
     setSavingProfile(false)
     if (!response.ok) {
-      setError(payload?.error || "Could not save profile.")
+      setError(payload?.error || dict.settings.saveError)
       return
     }
 
@@ -47,13 +49,13 @@ export function SettingsForm({ initialName, initialEmail }: SettingsFormProps) {
       {/* Profile */}
       <Card>
         <CardHeader>
-          <CardTitle>Profile</CardTitle>
-          <CardDescription>Update your account details</CardDescription>
+          <CardTitle>{dict.settings.profile}</CardTitle>
+          <CardDescription>{dict.settings.profileDescription}</CardDescription>
         </CardHeader>
         <CardContent>
           <form className="space-y-5" onSubmit={saveProfile}>
             <div className="space-y-2">
-              <Label htmlFor="display-name">Display name</Label>
+              <Label htmlFor="display-name">{dict.settings.displayName}</Label>
               <div className="relative">
                 <UserIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
@@ -61,31 +63,31 @@ export function SettingsForm({ initialName, initialEmail }: SettingsFormProps) {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="pl-10"
-                  placeholder="Your name"
+                  placeholder={dict.settings.namePlaceholder}
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{dict.settings.email}</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input id="email" type="email" value={email} readOnly className="pl-10 text-muted-foreground" />
               </div>
               <p className="text-xs text-muted-foreground">
-                Your email is managed by your sign-in provider and can&apos;t be changed here.
+                {dict.settings.emailHelp}
               </p>
             </div>
 
             <div className="flex items-center gap-3">
               <Button type="submit" disabled={savingProfile}>
                 {savingProfile ? <Loader2 className="size-4 animate-spin" /> : null}
-                {savingProfile ? "Saving..." : "Save changes"}
+                {savingProfile ? dict.settings.saving : dict.settings.saveChanges}
               </Button>
               {savedProfile && (
                 <span className="flex items-center gap-1 text-sm text-emerald-400">
                   <Check className="size-4" />
-                  Saved
+                  {dict.settings.saved}
                 </span>
               )}
             </div>

@@ -1,20 +1,21 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { intlLocale, type AppLocale } from "@/lib/i18n"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function formatDate(date: Date | string): string {
-  return new Intl.DateTimeFormat("en-US", {
+export function formatDate(date: Date | string, locale: AppLocale = "en"): string {
+  return new Intl.DateTimeFormat(intlLocale(locale), {
     month: "short",
     day: "numeric",
     year: "numeric",
   }).format(new Date(date))
 }
 
-export function formatDateTime(date: Date | string): string {
-  return new Intl.DateTimeFormat("en-US", {
+export function formatDateTime(date: Date | string, locale: AppLocale = "en"): string {
+  return new Intl.DateTimeFormat(intlLocale(locale), {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -29,12 +30,12 @@ export function formatDuration(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, "0")}`
 }
 
-export function formatCredits(credits: number): string {
-  return new Intl.NumberFormat("en-US").format(credits)
+export function formatCredits(credits: number, locale: AppLocale = "en"): string {
+  return new Intl.NumberFormat(intlLocale(locale)).format(credits)
 }
 
-export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat("en-US", {
+export function formatCurrency(amount: number, locale: AppLocale = "en"): string {
+  return new Intl.NumberFormat(intlLocale(locale), {
     style: "currency",
     currency: "USD",
   }).format(amount / 100)

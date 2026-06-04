@@ -3,6 +3,7 @@
 import { CreditCard } from "lucide-react"
 import { useState } from "react"
 import { Button, type ButtonProps } from "@/components/ui/button"
+import { useI18n } from "@/components/I18nProvider"
 
 interface CheckoutButtonProps {
   planId: string
@@ -12,6 +13,7 @@ interface CheckoutButtonProps {
 }
 
 export function CheckoutButton({ planId, label, variant = "default", className }: CheckoutButtonProps) {
+  const { dict } = useI18n()
   const [loading, setLoading] = useState(false)
 
   async function checkout() {
@@ -29,13 +31,13 @@ export function CheckoutButton({ planId, label, variant = "default", className }
       return
     }
 
-    alert(payload.error || "Could not start checkout.")
+    alert(payload.error || dict.buttons.checkoutError)
   }
 
   return (
     <Button variant={variant} className={className} disabled={loading} onClick={checkout} type="button">
       <CreditCard className="size-4" />
-      {loading ? "Opening..." : label}
+      {loading ? dict.buttons.opening : label}
     </Button>
   )
 }

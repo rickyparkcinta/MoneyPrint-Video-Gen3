@@ -10,6 +10,8 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { interpolate } from "@/lib/i18n"
+import { useI18n } from "@/components/I18nProvider"
 
 type CreateResponse = {
   jobId?: string
@@ -17,24 +19,18 @@ type CreateResponse = {
 }
 
 const voiceOptions = [
-  { value: "en-US-JennyNeural-Female", label: "Jenny - Natural Female" },
-  { value: "en-US-GuyNeural-Male", label: "Guy - Clear Male" },
-  { value: "en-US-AriaNeural-Female", label: "Aria - Energetic Female" },
+  { value: "en-US-JennyNeural-Female" },
+  { value: "en-US-GuyNeural-Male" },
+  { value: "en-US-AriaNeural-Female" },
 ]
 
 const subtitleOptions = [
-  { value: "bold", label: "Bold Captions" },
-  { value: "clean", label: "Clean Lower Third" },
+  { value: "bold" },
+  { value: "clean" },
 ]
 
 const musicOptions = [
-  { value: "none", label: "No Music" },
-]
-
-const promptSuggestions = [
-  "Top 5 AI tools that will change your workflow",
-  "Why remote work is the future of productivity",
-  "3 morning habits of successful entrepreneurs",
+  { value: "none" },
 ]
 
 function supportedValue(options: Array<{ value: string }>, value: string | null, fallback: string) {
@@ -42,6 +38,7 @@ function supportedValue(options: Array<{ value: string }>, value: string | null,
 }
 
 export function CreateVideoForm() {
+  const { dict } = useI18n()
   const searchParams = useSearchParams()
   const [topic, setTopic] = useState(() => searchParams.get("topic") || "")
   const [prompt, setPrompt] = useState("")
@@ -89,7 +86,7 @@ export function CreateVideoForm() {
     setIsSubmitting(false)
 
     if (!response.ok || !payload.jobId) {
-      setMessage(payload.error || "Could not create the video job.")
+      setMessage(payload.error || dict.create.createError)
       return
     }
 
@@ -99,26 +96,29 @@ export function CreateVideoForm() {
   const handleSuggestionClick = (suggestion: string) => {
     setTopic(suggestion)
   }
+  const creditCostLabel = interpolate(creditCost === 1 ? dict.create.oneCredit : dict.create.manyCredits, {
+    count: creditCost,
+  })
 
   return (
     <Card className="mx-auto max-w-2xl">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Sparkles className="size-5 text-primary" />
-          Create New Video
+          {dict.create.formTitle}
         </CardTitle>
         <CardDescription>
-          Describe your video idea and our AI will generate a complete short-form video for you.
+          {dict.create.formDescription}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Topic input */}
           <div className="space-y-2">
-            <Label htmlFor="topic">Video Topic</Label>
+            <Label htmlFor="topic">{dict.create.topic}</Label>
             <Input
               id="topic"
-              placeholder="Example: Three money habits that compound quietly"
+              placeholder={dict.create.topicPlaceholder}
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
               minLength={3}
@@ -129,9 +129,9 @@ export function CreateVideoForm() {
 
           {/* Quick suggestions */}
           <div className="space-y-2">
-            <Label className="text-muted-foreground">Quick suggestions</Label>
+            <Label className="text-muted-foreground">{dict.create.suggestions}</Label>
             <div className="flex flex-wrap gap-2">
-              {promptSuggestions.map((suggestion, index) => (
+              {dict.create.suggestionsList.map((suggestion, index) => (
                 <button
                   key={index}
                   type="button"
@@ -146,45 +146,45 @@ export function CreateVideoForm() {
 
           {/* Direction textarea */}
           <div className="space-y-2">
-            <Label htmlFor="prompt">Direction (Optional)</Label>
+            <Label htmlFor="prompt">{dict.create.direction}</Label>
             <Textarea
               id="prompt"
-              placeholder="Optional tone, audience, hook, or must-include points..."
+              placeholder={dict.create.directionPlaceholder}
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               maxLength={2000}
               className="min-h-[100px] resize-none"
             />
             <p className="text-xs text-muted-foreground">
-              Add specific instructions for tone, target audience, or key points to include.
+              {dict.create.directionHelp}
             </p>
           </div>
 
           {/* Duration and Voice row */}
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="duration">Duration</Label>
+              <Label htmlFor="duration">{dict.create.duration}</Label>
               <Select value={durationSeconds} onValueChange={(v) => setDurationSeconds(v as "30" | "60")}>
                 <SelectTrigger id="duration">
-                  <SelectValue placeholder="Select duration" />
+                  <SelectValue placeholder={dict.create.selectDuration} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="30">30 seconds</SelectItem>
-                  <SelectItem value="60">60 seconds</SelectItem>
+                  <SelectItem value="30">{dict.create.seconds30}</SelectItem>
+                  <SelectItem value="60">{dict.create.seconds60}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="voice">Voice</Label>
+              <Label htmlFor="voice">{dict.create.voice}</Label>
               <Select value={voiceId} onValueChange={setVoiceId}>
                 <SelectTrigger id="voice">
-                  <SelectValue placeholder="Select a voice" />
+                  <SelectValue placeholder={dict.create.selectVoice} />
                 </SelectTrigger>
                 <SelectContent>
                   {voiceOptions.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
-                      {option.label}
+                      {dict.create.voices[option.value as keyof typeof dict.create.voices] ?? option.value}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -195,15 +195,15 @@ export function CreateVideoForm() {
           {/* Subtitles and Music row */}
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="subtitles">Subtitle Style</Label>
+              <Label htmlFor="subtitles">{dict.create.subtitleStyle}</Label>
               <Select value={subtitleStyle} onValueChange={setSubtitleStyle}>
                 <SelectTrigger id="subtitles">
-                  <SelectValue placeholder="Select style" />
+                  <SelectValue placeholder={dict.create.selectStyle} />
                 </SelectTrigger>
                 <SelectContent>
                   {subtitleOptions.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
-                      {option.label}
+                      {option.value === "bold" ? dict.create.boldCaptions : dict.create.cleanLowerThird}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -211,15 +211,15 @@ export function CreateVideoForm() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="music">Background Music</Label>
+              <Label htmlFor="music">{dict.create.music}</Label>
               <Select value={musicStyle} onValueChange={setMusicStyle}>
                 <SelectTrigger id="music">
-                  <SelectValue placeholder="Select music" />
+                  <SelectValue placeholder={dict.create.selectMusic} />
                 </SelectTrigger>
                 <SelectContent>
                   {musicOptions.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
-                      {option.label}
+                      {dict.create.noMusic}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -230,11 +230,9 @@ export function CreateVideoForm() {
           {/* Credit cost notice */}
           <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
             <p className="text-sm text-muted-foreground">
-              This will create one English 9:16 video and costs{" "}
-              <span className="font-semibold text-primary">
-                {creditCost} credit{creditCost === 1 ? "" : "s"}
-              </span>
-              .
+              {interpolate(dict.create.creditNotice, {
+                credits: creditCostLabel,
+              })}
             </p>
           </div>
 
@@ -250,18 +248,18 @@ export function CreateVideoForm() {
             {isSubmitting ? (
               <>
                 <Loader2 className="animate-spin" />
-                Creating Video...
+                {dict.create.creating}
               </>
             ) : (
               <>
                 <Wand2 />
-                Queue Video
+                {dict.create.queue}
               </>
             )}
           </Button>
 
           <p className="text-center text-xs text-muted-foreground">
-            Generation typically takes 5-15 minutes. You&apos;ll be notified when complete.
+            {dict.create.generationNote}
           </p>
         </form>
       </CardContent>

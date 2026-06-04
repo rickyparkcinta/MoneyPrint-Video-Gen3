@@ -3,6 +3,7 @@
 import { Settings } from "lucide-react"
 import { useState } from "react"
 import { Button, type ButtonProps } from "@/components/ui/button"
+import { useI18n } from "@/components/I18nProvider"
 
 interface PortalButtonProps {
   label?: string
@@ -10,8 +11,10 @@ interface PortalButtonProps {
   className?: string
 }
 
-export function PortalButton({ label = "Manage billing", variant = "outline", className }: PortalButtonProps) {
+export function PortalButton({ label, variant = "outline", className }: PortalButtonProps) {
+  const { dict } = useI18n()
   const [loading, setLoading] = useState(false)
+  const resolvedLabel = label ?? dict.buttons.manageBilling
 
   async function openPortal() {
     setLoading(true)
@@ -24,13 +27,13 @@ export function PortalButton({ label = "Manage billing", variant = "outline", cl
       return
     }
 
-    alert(payload.error || "Could not open the billing portal.")
+    alert(payload.error || dict.buttons.portalError)
   }
 
   return (
     <Button variant={variant} className={className} disabled={loading} onClick={openPortal} type="button">
       <Settings className="size-4" />
-      {loading ? "Opening..." : label}
+      {loading ? dict.buttons.opening : resolvedLabel}
     </Button>
   )
 }

@@ -3,25 +3,22 @@ import type { Metadata } from "next"
 import { AuthForm } from "@/components/AuthForm"
 import { Button } from "@/components/ui/button"
 import { Check } from "lucide-react"
+import { getI18n } from "@/lib/i18n-server"
 
 export const metadata: Metadata = {
   title: "Sign Up",
   description: "Create your MoneyPrint account and start generating videos",
 }
 
-const benefits = [
-  "5 launch credits to start",
-  "No credit card required",
-  "Cancel anytime",
-]
+export default async function SignupPage() {
+  const { dict } = await getI18n()
 
-export default function SignupPage() {
   return (
     <div className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center px-4 py-12">
       <div className="w-full max-w-md space-y-6">
         {/* Benefits */}
         <div className="mb-8 flex flex-wrap justify-center gap-4">
-          {benefits.map((benefit) => (
+          {dict.auth.benefits.map((benefit) => (
             <div key={benefit} className="flex items-center gap-2 text-sm text-muted-foreground">
               <Check className="size-4 text-primary" />
               {benefit}
@@ -32,20 +29,20 @@ export default function SignupPage() {
         <AuthForm mode="signup" />
         
         <div className="text-center text-sm text-muted-foreground">
-          Already have an account?{" "}
+          {dict.auth.haveAccount}{" "}
           <Button variant="link" asChild className="h-auto p-0 font-semibold">
-            <Link href="/login">Log in</Link>
+            <Link href="/login">{dict.common.login}</Link>
           </Button>
         </div>
 
         <p className="text-center text-xs text-muted-foreground">
-          By creating an account, you agree to our{" "}
+          {dict.auth.termsNote}{" "}
           <Link href="/terms" className="underline hover:text-foreground">
-            Terms of Service
+            {dict.auth.terms}
           </Link>{" "}
-          and{" "}
+          {dict.auth.and}{" "}
           <Link href="/privacy" className="underline hover:text-foreground">
-            Privacy Policy
+            {dict.auth.privacy}
           </Link>
           .
         </p>

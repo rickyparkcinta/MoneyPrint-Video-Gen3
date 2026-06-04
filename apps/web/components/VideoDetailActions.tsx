@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { Copy, Download, RefreshCw, Share2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { Video } from "@/lib/types"
+import { useI18n } from "@/components/I18nProvider"
 
 interface VideoDetailActionsProps {
   video: Pick<
@@ -15,6 +16,7 @@ interface VideoDetailActionsProps {
 }
 
 export function VideoDetailActions({ video, outputUrl }: VideoDetailActionsProps) {
+  const { dict } = useI18n()
   const router = useRouter()
   const [pending, setPending] = useState<string | null>(null)
   const [error, setError] = useState("")
@@ -56,7 +58,7 @@ export function VideoDetailActions({ video, outputUrl }: VideoDetailActionsProps
 
     setPending(null)
     if (!response.ok || !payload?.jobId) {
-      setError(payload?.error || "Could not queue a new render.")
+      setError(payload?.error || dict.videoDetail.actions.queueError)
       return
     }
 
@@ -75,7 +77,7 @@ export function VideoDetailActions({ video, outputUrl }: VideoDetailActionsProps
         <Button asChild>
           <a href={outputUrl} download>
             <Download />
-            Download Video
+            {dict.videoDetail.actions.download}
           </a>
         </Button>
       )}
@@ -83,19 +85,19 @@ export function VideoDetailActions({ video, outputUrl }: VideoDetailActionsProps
       {(isCompleted || isFailed) && (
         <Button variant={isFailed ? "default" : "outline"} onClick={regenerate} disabled={pending === "regenerate"}>
           <RefreshCw className={pending === "regenerate" ? "animate-spin" : undefined} />
-          {isFailed ? "Retry Generation" : "Regenerate"}
+          {isFailed ? dict.videoDetail.actions.retry : dict.videoDetail.actions.regenerate}
         </Button>
       )}
 
       <Button variant="outline" onClick={duplicateSettings}>
         <Copy />
-        Duplicate Settings
+        {dict.videoDetail.actions.duplicate}
       </Button>
 
       {isCompleted && (
         <Button variant="outline" onClick={share}>
           <Share2 />
-          Share
+          {dict.videoDetail.actions.share}
         </Button>
       )}
 

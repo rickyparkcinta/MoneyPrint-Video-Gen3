@@ -7,12 +7,14 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser"
+import { useI18n } from "@/components/I18nProvider"
 
 interface AuthFormProps {
   mode: "login" | "signup"
 }
 
 export function AuthForm({ mode }: AuthFormProps) {
+  const { dict } = useI18n()
   const [email, setEmail] = useState("")
   const [message, setMessage] = useState("")
   const [isError, setIsError] = useState(false)
@@ -38,7 +40,7 @@ export function AuthForm({ mode }: AuthFormProps) {
       setIsError(true)
       setMessage(error.message)
     } else {
-      setMessage("Check your email for the magic link.")
+      setMessage(dict.auth.magicLinkSent)
     }
   }
 
@@ -46,18 +48,18 @@ export function AuthForm({ mode }: AuthFormProps) {
     <Card className="w-full max-w-md">
       <CardHeader className="text-center">
         <CardTitle className="text-2xl">
-          {mode === "signup" ? "Create your account" : "Welcome back"}
+          {mode === "signup" ? dict.auth.createAccount : dict.auth.welcomeBack}
         </CardTitle>
         <CardDescription>
           {mode === "signup"
-            ? "Enter your email to get started with MoneyPrint"
-            : "Enter your email to sign in to your account"}
+            ? dict.auth.signupPrompt
+            : dict.auth.loginPrompt}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email">Email address</Label>
+            <Label htmlFor="email">{dict.auth.email}</Label>
             <Input
               id="email"
               type="email"
@@ -86,18 +88,18 @@ export function AuthForm({ mode }: AuthFormProps) {
             {loading ? (
               <>
                 <Loader2 className="animate-spin" />
-                Sending link...
+                {dict.auth.sending}
               </>
             ) : (
               <>
                 <Mail />
-                {mode === "signup" ? "Create account" : "Send magic link"}
+                {mode === "signup" ? dict.auth.createAccountButton : dict.auth.sendMagicLink}
               </>
             )}
           </Button>
 
           <p className="text-center text-xs text-muted-foreground">
-            We&apos;ll send you a magic link to sign in. No password needed.
+            {dict.auth.magicLinkNote}
           </p>
         </form>
       </CardContent>

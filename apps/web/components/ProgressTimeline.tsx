@@ -1,6 +1,9 @@
+"use client"
+
 import { cn, formatDateTime } from "@/lib/utils"
 import type { JobEvent } from "@/lib/types"
 import { Check, Circle, Loader2, X } from "lucide-react"
+import { useI18n } from "@/components/I18nProvider"
 
 interface ProgressTimelineProps {
   events: JobEvent[]
@@ -13,6 +16,8 @@ interface ProgressTimelineProps {
  * timestamps, and optional detail text.
  */
 export function ProgressTimeline({ events, className }: ProgressTimelineProps) {
+  const { locale } = useI18n()
+
   return (
     <ol className={cn("relative space-y-6", className)}>
       {events.map((event, index) => {
@@ -64,7 +69,7 @@ export function ProgressTimeline({ events, className }: ProgressTimelineProps) {
                 </span>
                 {event.timestamp && (
                   <time className="text-xs text-muted-foreground" dateTime={event.timestamp}>
-                    {formatDateTime(event.timestamp)}
+                    {formatDateTime(event.timestamp, locale)}
                   </time>
                 )}
               </div>
