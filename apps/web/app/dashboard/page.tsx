@@ -33,8 +33,8 @@ export default async function DashboardPage() {
     created_at: string
   }> = []
   let recentVideos: VideoRecord[] = []
-  let displayName = dict.dashboard.creator
-  let currentPlanName = dict.dashboard.freeTrial
+  let displayName: string = dict.dashboard.creator
+  let currentPlanName: string = dict.dashboard.freeTrial
   let isAuthenticated = false
 
   try {
