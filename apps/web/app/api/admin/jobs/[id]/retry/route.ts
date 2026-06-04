@@ -23,13 +23,17 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
     return NextResponse.json({ error: "Completed jobs cannot be retried." }, { status: 400 });
   }
 
-  const messageId = await publishRenderDispatch(job.id, job.user_id);
+  const messageId = await publishRenderDispatch(job.id);
+  const renderWorkerUrl = process.env.RENDER_WORKER_URL?.replace(/\/+$/, "");
+
   await admin
     .from("video_jobs")
     .update({
       status: "queued",
       progress: 0,
       qstash_message_id: messageId,
+      render_dispatch_id: messageId,
+      render_worker_url: renderWorkerUrl,
       locked_by: null,
       locked_until: null,
       error_code: null,
