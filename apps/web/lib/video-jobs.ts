@@ -16,6 +16,7 @@ type VideoJobRow = {
   credit_cost?: number | null
   created_at: string
   completed_at?: string | null
+  finished_at?: string | null
   error_message?: string | null
 }
 
@@ -28,6 +29,7 @@ type JobEventRow = {
 }
 
 const activeStatuses = new Set([
+  "processing",
   "dispatching",
   "claimed",
   "generating_script",
@@ -41,8 +43,10 @@ const activeStatuses = new Set([
 const eventLabels: Record<string, string> = {
   queued: "Job queued",
   qstash_published: "Render dispatch queued",
-  cloud_run_dispatching: "Cloud Run dispatching",
-  cloud_run_dispatch_failed: "Cloud Run dispatch failed",
+  processing: "Worker processing",
+  cloud_run_dispatching: "Legacy dispatching",
+  cloud_run_dispatch_failed: "Legacy dispatch failed",
+  render_accepted: "Render accepted job",
   claimed: "Worker claimed job",
   generating_script: "Generating script",
   generating_voice: "Generating voice",
@@ -91,7 +95,7 @@ export function mapVideoJobRow(job: VideoJobRow, userId: string, events: JobEven
     progress,
     duration: job.duration_seconds ?? undefined,
     createdAt: job.created_at,
-    completedAt: job.completed_at ?? undefined,
+    completedAt: job.finished_at ?? job.completed_at ?? undefined,
     error: job.error_message ?? undefined,
     language: languageLabel(job.language),
     aspectRatio: job.aspect_ratio || "9:16",
@@ -135,8 +139,5 @@ function humanizeStatus(status: string): string {
 }
 
 function languageLabel(language: string | null | undefined): string {
-  if (!language || language === "en") {
-    return "English"
-  }
-  return language
+  return language || "en"
 }

@@ -15,8 +15,30 @@ import { useI18n } from "@/components/I18nProvider"
 
 type CreateResponse = {
   jobId?: string
+  job_id?: string
   error?: string
 }
+
+const languageOptions = [
+  { value: "en", label: "English" },
+  { value: "es", label: "Spanish" },
+  { value: "fr", label: "French" },
+  { value: "de", label: "German" },
+  { value: "zh", label: "Chinese" },
+  { value: "ja", label: "Japanese" },
+]
+
+const aspectOptions = [
+  { value: "9:16", label: "9:16" },
+  { value: "16:9", label: "16:9" },
+  { value: "1:1", label: "1:1" },
+]
+
+const sourceOptions = [
+  { value: "pexels", label: "Pexels" },
+  { value: "pixabay", label: "Pixabay" },
+  { value: "local", label: "Local" },
+]
 
 const voiceOptions = [
   { value: "en-US-JennyNeural-Female" },
@@ -33,6 +55,8 @@ const musicOptions = [
   { value: "none" },
 ]
 
+const sceneOptions = ["1", "2", "3", "4", "5", "6"].map((value) => ({ value }))
+
 function supportedValue(options: Array<{ value: string }>, value: string | null, fallback: string) {
   return value && options.some((option) => option.value === value) ? value : fallback
 }
@@ -42,9 +66,13 @@ export function CreateVideoForm() {
   const searchParams = useSearchParams()
   const [topic, setTopic] = useState(() => searchParams.get("topic") || "")
   const [prompt, setPrompt] = useState("")
+  const [language, setLanguage] = useState(() => supportedValue(languageOptions, searchParams.get("language"), "en"))
+  const [aspectRatio, setAspectRatio] = useState(() => supportedValue(aspectOptions, searchParams.get("aspectRatio"), "9:16"))
+  const [videoSource, setVideoSource] = useState(() => supportedValue(sourceOptions, searchParams.get("videoSource"), "pexels"))
   const [durationSeconds, setDurationSeconds] = useState<"30" | "60">(() =>
     searchParams.get("duration") === "60" ? "60" : "30"
   )
+  const [sceneCount, setSceneCount] = useState(() => supportedValue(sceneOptions, searchParams.get("sceneCount"), "3"))
   const [voiceId, setVoiceId] = useState(() =>
     supportedValue(voiceOptions, searchParams.get("voice"), "en-US-JennyNeural-Female")
   )
@@ -67,16 +95,19 @@ export function CreateVideoForm() {
     setIsSubmitting(true)
     setMessage("")
 
-    const response = await fetch("/api/videos/create", {
+    const response = await fetch("/api/video-jobs", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         topic,
         prompt,
-        language: "en",
-        aspectRatio: "9:16",
+        language,
+        aspectRatio,
+        videoSource,
         durationSeconds: Number(durationSeconds),
+        sceneCount: Number(sceneCount),
         voiceId,
+        ttsProvider: "edge",
         subtitleStyle,
         musicStyle,
         variants: 1,
@@ -85,12 +116,13 @@ export function CreateVideoForm() {
     const payload = (await response.json()) as CreateResponse
     setIsSubmitting(false)
 
-    if (!response.ok || !payload.jobId) {
+    const jobId = payload.job_id || payload.jobId
+    if (!response.ok || !jobId) {
       setMessage(payload.error || dict.create.createError)
       return
     }
 
-    window.location.href = `/videos/${payload.jobId}`
+    window.location.href = `/videos/${jobId}`
   }
 
   const handleSuggestionClick = (suggestion: string) => {
@@ -160,8 +192,58 @@ export function CreateVideoForm() {
             </p>
           </div>
 
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="space-y-2">
+              <Label htmlFor="language">Language</Label>
+              <Select value={language} onValueChange={setLanguage}>
+                <SelectTrigger id="language">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {languageOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="aspect">Aspect</Label>
+              <Select value={aspectRatio} onValueChange={setAspectRatio}>
+                <SelectTrigger id="aspect">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {aspectOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="source">Source</Label>
+              <Select value={videoSource} onValueChange={setVideoSource}>
+                <SelectTrigger id="source">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {sourceOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
           {/* Duration and Voice row */}
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-3">
             <div className="space-y-2">
               <Label htmlFor="duration">{dict.create.duration}</Label>
               <Select value={durationSeconds} onValueChange={(v) => setDurationSeconds(v as "30" | "60")}>
@@ -171,6 +253,22 @@ export function CreateVideoForm() {
                 <SelectContent>
                   <SelectItem value="30">{dict.create.seconds30}</SelectItem>
                   <SelectItem value="60">{dict.create.seconds60}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="sceneCount">Scenes</Label>
+              <Select value={sceneCount} onValueChange={setSceneCount}>
+                <SelectTrigger id="sceneCount">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {sceneOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.value}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

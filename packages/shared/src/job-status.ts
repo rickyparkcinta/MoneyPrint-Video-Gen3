@@ -1,5 +1,6 @@
 export const JOB_STATUSES = [
   "queued",
+  "processing",
   "dispatching",
   "claimed",
   "generating_script",
@@ -18,6 +19,7 @@ export type JobStatus = (typeof JOB_STATUSES)[number];
 
 export const ACTIVE_JOB_STATUSES: JobStatus[] = [
   "queued",
+  "processing",
   "dispatching",
   "claimed",
   "generating_script",

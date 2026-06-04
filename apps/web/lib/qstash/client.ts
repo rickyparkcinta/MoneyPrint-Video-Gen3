@@ -1,31 +1,34 @@
-import { Client, Receiver } from "@upstash/qstash";
+import { Client } from "@upstash/qstash";
 import { requiredEnv } from "@/lib/env";
 
 let qstashClient: Client | null = null;
-let qstashReceiver: Receiver | null = null;
 
 export function getQstashClient(): Client {
   if (!qstashClient) {
-    qstashClient = new Client({ token: requiredEnv("QSTASH_TOKEN") });
+    const token = process.env.UPSTASH_QSTASH_TOKEN || process.env.QSTASH_TOKEN;
+    if (!token) {
+      throw new Error("Missing required env var: UPSTASH_QSTASH_TOKEN");
+    }
+
+    qstashClient = new Client({
+      token
+    });
   }
   return qstashClient;
 }
 
-export function getQstashReceiver(): Receiver {
-  if (!qstashReceiver) {
-    qstashReceiver = new Receiver({
-      currentSigningKey: requiredEnv("QSTASH_CURRENT_SIGNING_KEY"),
-      nextSigningKey: requiredEnv("QSTASH_NEXT_SIGNING_KEY")
-    });
-  }
-  return qstashReceiver;
-}
+export async function publishRenderDispatch(jobId: string) {
+  const workerUrl = requiredEnv("RENDER_WORKER_URL").replace(/\/+$/, "");
+  const headers: Record<string, string> = {};
 
-export async function publishRenderDispatch(jobId: string, userId: string) {
-  const url = requiredEnv("QSTASH_DISPATCH_URL");
+  if (process.env.WORKER_SHARED_SECRET) {
+    headers.Authorization = `Bearer ${process.env.WORKER_SHARED_SECRET}`;
+  }
+
   const response = await getQstashClient().publishJSON({
-    url,
-    body: { job_id: jobId, user_id: userId, attempt: 1 },
+    url: `${workerUrl}/qstash/render`,
+    body: { job_id: jobId },
+    headers,
     retries: 3
   });
 

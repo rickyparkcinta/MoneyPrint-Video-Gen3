@@ -42,27 +42,33 @@ export function VideoDetailActions({ video, outputUrl }: VideoDetailActionsProps
     setPending("regenerate")
     setError("")
 
-    const response = await fetch("/api/videos/create", {
+    const response = await fetch("/api/video-jobs", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         topic: video.prompt,
+        language: video.language || "en",
+        aspectRatio: video.aspectRatio || "9:16",
+        videoSource: "pexels",
         durationSeconds: video.duration === 60 ? 60 : 30,
+        sceneCount: video.duration === 60 ? 5 : 3,
         voiceId: video.voice,
+        ttsProvider: "edge",
         subtitleStyle: video.subtitleStyle,
         musicStyle: video.musicStyle,
         variants: 1,
       }),
     })
-    const payload = (await response.json().catch(() => null)) as { jobId?: string; error?: string } | null
+    const payload = (await response.json().catch(() => null)) as { jobId?: string; job_id?: string; error?: string } | null
 
     setPending(null)
-    if (!response.ok || !payload?.jobId) {
+    const jobId = payload?.job_id || payload?.jobId
+    if (!response.ok || !jobId) {
       setError(payload?.error || dict.videoDetail.actions.queueError)
       return
     }
 
-    router.push(`/videos/${payload.jobId}`)
+    router.push(`/videos/${jobId}`)
   }
 
   function share() {

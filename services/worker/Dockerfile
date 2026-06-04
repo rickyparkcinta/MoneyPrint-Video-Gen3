@@ -17,8 +17,8 @@ COPY services/worker/requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
 COPY services/worker/moneyprinter /app/moneyprinter
-COPY services/worker/worker.py /app/worker.py
+COPY services/worker/worker /app/worker
 
 WORKDIR /app
 
-CMD ["python", "/app/worker.py"]
+CMD ["sh", "-c", "uvicorn worker.main:app --host 0.0.0.0 --port ${PORT:-8080}"]

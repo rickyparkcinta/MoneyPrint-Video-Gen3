@@ -95,7 +95,7 @@ export const dictionaries = {
       note: "No credit card required. New accounts receive 5 launch credits.",
       preview: "MoneyPrinterTurbo render pipeline",
       jobCreated: "Supabase Job Created",
-      worker: "Cloud Run Worker",
+      worker: "Render Worker",
       featuresBadge: "Features",
       featuresTitle: "Everything You Need to Create Amazing Videos",
       featuresSubtitle: "Our AI handles every step of video creation so you can focus on growing your audience.",
@@ -116,7 +116,7 @@ export const dictionaries = {
         ["Stock Video Materials", "MoneyPrinterTurbo pulls matching video materials from the configured Pexels or Pixabay provider."],
         ["Private Downloads", "Completed MP4 outputs are uploaded to private Supabase Storage and served through signed URLs."],
         ["Real-Time Progress", "Track every step of your video generation with live updates. Know exactly when your content will be ready."],
-        ["Cloud Run Worker", "QStash dispatches each paid job to a Cloud Run Job that owns the long-running render."],
+        ["Render Worker", "QStash dispatches each paid job to a Render service that owns the long-running render."],
       ],
       steps: [
         ["01", "Enter Your Idea", "Describe your video topic in a few words. Add optional directions for tone, style, or specific points to cover."],
@@ -130,7 +130,7 @@ export const dictionaries = {
         "Automatic refunds if generation fails",
       ],
       faqs: [
-        ["What happens when I create a video?", "The app creates a Supabase video job, deducts credits, publishes a QStash dispatch, starts a Cloud Run Job, and renders through MoneyPrinterTurbo."],
+        ["What happens when I create a video?", "The app creates a Supabase video job, deducts credits, publishes a QStash dispatch to Render, and renders through MoneyPrinterTurbo."],
         ["Do I need a credit card to try it?", "No. New accounts receive 5 launch credits from the Supabase signup trigger."],
         ["Where are generated videos stored?", "Completed outputs are uploaded to private Supabase Storage and served through signed URLs."],
         ["What renderer powers the worker?", "The worker uses the vendored MoneyPrinterTurbo Python app and calls its internal video task service."],
@@ -310,7 +310,7 @@ export const dictionaries = {
       checkFaq: "Check our FAQ",
       planFeatures: {
         free: ["5 launch credits", "Private Supabase video storage", "MoneyPrinterTurbo render queue"],
-        starter: ["50 credits per month", "Cloud Run render dispatch", "Private video output links"],
+        starter: ["50 credits per month", "Render worker dispatch", "Private video output links"],
         pro: ["180 credits per month", "Higher-volume creator workflow", "Stripe-managed subscription"],
         agency: ["700 credits per month", "Agency-volume render budget", "Stripe-managed subscription"],
       },
@@ -425,7 +425,7 @@ export const dictionaries = {
       note: "無需信用卡。新帳號可獲得 5 個啟動點數。",
       preview: "MoneyPrinterTurbo 生成流程",
       jobCreated: "Supabase 任務已建立",
-      worker: "Cloud Run Worker",
+      worker: "Render Worker",
       featuresBadge: "功能",
       featuresTitle: "建立精彩影片所需的一切",
       featuresSubtitle: "AI 處理影片製作每個步驟，讓你專注成長受眾。",
@@ -446,7 +446,7 @@ export const dictionaries = {
         ["素材影片匹配", "MoneyPrinterTurbo 會從已設定的 Pexels 或 Pixabay 供應商抓取匹配素材。"],
         ["私密下載", "完成的 MP4 會上傳到私有 Supabase Storage，並透過簽名連結提供下載。"],
         ["即時進度", "追蹤影片生成每個步驟，清楚知道內容何時完成。"],
-        ["Cloud Run Worker", "QStash 會把付費任務派發給負責長時間渲染的 Cloud Run Job。"],
+        ["Render Worker", "QStash 會把付費任務派發給負責長時間渲染的 Render 服務。"],
       ],
       steps: [
         ["01", "輸入想法", "用幾句話描述影片主題，也可加入語氣、風格或必須涵蓋的重點。"],
@@ -455,7 +455,7 @@ export const dictionaries = {
       ],
       benefits: ["相較手動剪輯，每支影片節省 10+ 小時", "生成內容享有 100% 商業使用權", "優先佇列帶來更快生成速度", "生成失敗時自動退還點數"],
       faqs: [
-        ["建立影片時會發生什麼？", "應用會建立 Supabase 影片任務、扣除點數、發布 QStash 派發、啟動 Cloud Run Job，並透過 MoneyPrinterTurbo 渲染。"],
+        ["建立影片時會發生什麼？", "應用會建立 Supabase 影片任務、扣除點數、發布 QStash 派發到 Render，並透過 MoneyPrinterTurbo 渲染。"],
         ["試用需要信用卡嗎？", "不需要。新帳號會從 Supabase 註冊觸發器獲得 5 個啟動點數。"],
         ["生成影片存在哪裡？", "完成的輸出會上傳到私有 Supabase Storage，並透過簽名 URL 存取。"],
         ["Worker 使用哪個渲染器？", "Worker 使用 vendored MoneyPrinterTurbo Python app，並呼叫其內部影片任務服務。"],
@@ -609,7 +609,7 @@ export const dictionaries = {
       checkFaq: "查看常見問題",
       planFeatures: {
         free: ["5 個啟動點數", "私有 Supabase 影片儲存", "MoneyPrinterTurbo 渲染佇列"],
-        starter: ["每月 50 點", "Cloud Run 渲染派發", "私有影片輸出連結"],
+        starter: ["每月 50 點", "Render Worker 派發", "私有影片輸出連結"],
         pro: ["每月 180 點", "高流量創作者工作流程", "Stripe 管理訂閱"],
         agency: ["每月 700 點", "代理商級渲染預算", "Stripe 管理訂閱"],
       },
@@ -710,7 +710,7 @@ export const dictionaries = {
       note: "无需信用卡。新账号可获得 5 个启动点数。",
       preview: "MoneyPrinterTurbo 生成流程",
       jobCreated: "Supabase 任务已创建",
-      worker: "Cloud Run Worker",
+      worker: "Render Worker",
       featuresBadge: "功能",
       featuresTitle: "创建精彩视频所需的一切",
       featuresSubtitle: "AI 处理视频制作每个步骤，让你专注增长受众。",
@@ -731,7 +731,7 @@ export const dictionaries = {
         ["素材视频匹配", "MoneyPrinterTurbo 会从已配置的 Pexels 或 Pixabay 供应商抓取匹配素材。"],
         ["私密下载", "完成的 MP4 会上传到私有 Supabase Storage，并通过签名链接提供下载。"],
         ["实时进度", "追踪视频生成每个步骤，清楚知道内容何时完成。"],
-        ["Cloud Run Worker", "QStash 会把付费任务派发给负责长时间渲染的 Cloud Run Job。"],
+        ["Render Worker", "QStash 会把付费任务派发给负责长时间渲染的 Render 服务。"],
       ],
       steps: [
         ["01", "输入想法", "用几句话描述视频主题，也可加入语气、风格或必须涵盖的重点。"],
@@ -740,7 +740,7 @@ export const dictionaries = {
       ],
       benefits: ["相比手动剪辑，每条视频节省 10+ 小时", "生成内容享有 100% 商业使用权", "优先队列带来更快生成速度", "生成失败时自动退还点数"],
       faqs: [
-        ["创建视频时会发生什么？", "应用会创建 Supabase 视频任务、扣除点数、发布 QStash 派发、启动 Cloud Run Job，并通过 MoneyPrinterTurbo 渲染。"],
+        ["创建视频时会发生什么？", "应用会创建 Supabase 视频任务、扣除点数、发布 QStash 派发到 Render，并通过 MoneyPrinterTurbo 渲染。"],
         ["试用需要信用卡吗？", "不需要。新账号会从 Supabase 注册触发器获得 5 个启动点数。"],
         ["生成视频存在哪里？", "完成的输出会上传到私有 Supabase Storage，并通过签名 URL 访问。"],
         ["Worker 使用哪个渲染器？", "Worker 使用 vendored MoneyPrinterTurbo Python app，并调用其内部视频任务服务。"],
@@ -894,7 +894,7 @@ export const dictionaries = {
       checkFaq: "查看常见问题",
       planFeatures: {
         free: ["5 个启动点数", "私有 Supabase 视频存储", "MoneyPrinterTurbo 渲染队列"],
-        starter: ["每月 50 点", "Cloud Run 渲染派发", "私有视频输出链接"],
+        starter: ["每月 50 点", "Render Worker 派发", "私有视频输出链接"],
         pro: ["每月 180 点", "高流量创作者工作流", "Stripe 管理订阅"],
         agency: ["每月 700 点", "代理商级渲染预算", "Stripe 管理订阅"],
       },

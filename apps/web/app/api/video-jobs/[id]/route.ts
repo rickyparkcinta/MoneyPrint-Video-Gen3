@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import { createSignedOutputUrl, readStorageText } from "@/lib/jobs";
+import { createSignedOutputUrl } from "@/lib/jobs";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getAuthenticatedUser } from "@/lib/supabase/server";
+import { toUiJobStatus } from "@/lib/video-jobs";
 
 export const runtime = "nodejs";
 
@@ -15,7 +16,7 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
 
   const { data: job, error } = await getSupabaseAdmin()
     .from("video_jobs")
-    .select("*")
+    .select("id,user_id,status,progress,output_bucket,output_path,output_url,error_message,created_at,updated_at,started_at,finished_at,completed_at")
     .eq("id", id)
     .eq("user_id", user.id)
     .single();
@@ -24,24 +25,17 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     return NextResponse.json({ error: "Video job not found." }, { status: 404 });
   }
 
-  const { data: events } = await getSupabaseAdmin()
-    .from("job_events")
-    .select("*")
-    .eq("job_id", id)
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: true });
-
-  const [outputSignedUrl, script, subtitles] = await Promise.all([
-    createSignedOutputUrl(job.output_path, job.output_bucket),
-    readStorageText(job.script_path),
-    readStorageText(job.subtitles_path)
-  ]);
+  const signedOutputUrl = job.output_url || await createSignedOutputUrl(job.output_path, job.output_bucket);
 
   return NextResponse.json({
-    job,
-    events: events ?? [],
-    outputSignedUrl,
-    script,
-    subtitles
+    id: job.id,
+    status: toUiJobStatus(job.status),
+    progress: job.progress ?? 0,
+    output_url: signedOutputUrl,
+    error_message: job.error_message,
+    created_at: job.created_at,
+    updated_at: job.updated_at,
+    started_at: job.started_at,
+    finished_at: job.finished_at ?? job.completed_at
   });
 }

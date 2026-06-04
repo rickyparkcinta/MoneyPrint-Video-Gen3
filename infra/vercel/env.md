@@ -14,18 +14,11 @@ STRIPE_PRO_PRICE_ID=
 STRIPE_AGENCY_PRICE_ID=
 STRIPE_CREDIT_PACK_PRICE_ID=
 
-QSTASH_TOKEN=
-QSTASH_CURRENT_SIGNING_KEY=
-QSTASH_NEXT_SIGNING_KEY=
-QSTASH_DISPATCH_URL=
-
-GOOGLE_CLOUD_PROJECT_ID=
-GOOGLE_CLOUD_REGION=
-GOOGLE_CLOUD_RUN_JOB_NAME=moneyprint-worker
-GOOGLE_SERVICE_ACCOUNT_EMAIL=
-GOOGLE_PRIVATE_KEY=
+UPSTASH_QSTASH_TOKEN=
+RENDER_WORKER_URL=
+WORKER_SHARED_SECRET=
 ```
 
-`QSTASH_DISPATCH_URL` should point to the Vercel route `/api/qstash/run-cloud-job`. That route verifies QStash and starts the Cloud Run Job execution.
+Vercel creates jobs, publishes QStash messages to the Render worker, and reads job status. It does not render videos.
 
-Never expose service-role, Stripe secret, QStash, Google, or provider keys to the browser.
+Never expose service-role, Stripe secret, QStash, worker secret, or provider keys to the browser.

@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { StatusBadge } from "@/components/StatusBadge"
 import { ProgressTimeline } from "@/components/ProgressTimeline"
 import { VideoDetailActions } from "@/components/VideoDetailActions"
+import { JobStatusPoller } from "@/components/JobStatusPoller"
 import { formatDateTime, formatDuration } from "@/lib/utils"
 import type { Video } from "@/lib/types"
 import { createSignedOutputUrl, readStorageText } from "@/lib/jobs"
@@ -61,7 +62,7 @@ export default async function VideoDetailPage({ params }: { params: Promise<{ id
 
   const video: Video = mapVideoJobRow(job, userId, mapJobEventRows(eventRows ?? []))
   const [outputUrl, script, subtitles] = await Promise.all([
-    createSignedOutputUrl(job.output_path),
+    createSignedOutputUrl(job.output_path, job.output_bucket),
     readStorageText(job.script_path),
     readStorageText(job.subtitles_path),
   ])
@@ -89,6 +90,7 @@ export default async function VideoDetailPage({ params }: { params: Promise<{ id
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+      <JobStatusPoller jobId={video.id} initialStatus={video.status} initialProgress={video.progress} />
       {/* Back button */}
       <div className="mb-6">
         <Button variant="ghost" size="sm" asChild>
