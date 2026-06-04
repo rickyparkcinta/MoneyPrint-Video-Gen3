@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "pnpm --filter @moneyprint/web dev",
     "typecheck": "pnpm --filter @moneyprint/web typecheck",
-    "lint": "pnpm --filter @moneyprint/web lint"
+    "lint": "pnpm --filter @moneyprint/web lint",
+    "stripe:sync-plans": "node scripts/sync-stripe-plans.mjs"
   },
   "packageManager": "pnpm@10.0.0"
 }
