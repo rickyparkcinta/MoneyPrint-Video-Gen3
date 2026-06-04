@@ -10,6 +10,8 @@
 /*/__pycache__/*
 .vscode
 /**/.streamlit
+!/webui/.streamlit/
+!/webui/.streamlit/config.toml
 __pycache__
 logs/
 

@@ -17,5 +17,3 @@ storage/
 tmp/
 services/worker/moneyprinter/storage/
 services/worker/moneyprinter/config.toml
-services/worker/moneyprinter/resource/songs/*
-!services/worker/moneyprinter/resource/songs/README.md
