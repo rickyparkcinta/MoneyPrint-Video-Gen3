@@ -211,10 +211,10 @@ def fallback_terms(job: dict[str, Any]) -> list[str]:
 
 def fallback_resolution(aspect_ratio: str) -> tuple[int, int]:
     if aspect_ratio == "16:9":
-        return 1280, 720
+        return 854, 480
     if aspect_ratio == "1:1":
-        return 1080, 1080
-    return 720, 1280
+        return 720, 720
+    return 480, 854
 
 
 def load_fallback_font(config: WorkerConfig, size: int) -> ImageFont.ImageFont:
@@ -339,7 +339,7 @@ def create_fallback_frame(
 def render_simple_fallback_video(config: WorkerConfig, job_id: str, claimed: dict[str, Any], work_dir: str) -> dict[str, Any]:
     job_input = claimed.get("input") or {}
     aspect_ratio = job_input.get("aspectRatio") or claimed.get("aspect_ratio") or "9:16"
-    duration = max(12, min(60, int(job_input.get("durationSeconds") or claimed.get("duration_seconds") or 30)))
+    duration = max(6, min(12, int(job_input.get("durationSeconds") or claimed.get("duration_seconds") or 30)))
     scene_count = max(1, min(6, int(job_input.get("sceneCount") or 3)))
     frame_size = fallback_resolution(aspect_ratio)
     script = fallback_script(claimed)
@@ -371,10 +371,12 @@ def render_simple_fallback_video(config: WorkerConfig, job_id: str, claimed: dic
     try:
         video.write_videofile(
             str(output_path),
-            fps=24,
+            fps=12,
             codec="libx264",
             audio=False,
             threads=max(1, int(os.getenv("MONEYPRINT_RENDER_THREADS", "2"))),
+            preset="ultrafast",
+            ffmpeg_params=["-pix_fmt", "yuv420p"],
             logger=None,
         )
     finally:
