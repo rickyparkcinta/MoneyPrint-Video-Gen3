@@ -17,13 +17,29 @@ from worker.supabase_client import get_job, get_supabase, rpc_or_raise
 TERMINAL_STATUSES = {"completed", "failed", "cancelled", "expired"}
 
 
+def provider_configured(source: str) -> bool:
+    if source == "pexels":
+        return bool(os.getenv("PEXELS_API_KEY"))
+    if source == "pixabay":
+        return bool(os.getenv("PIXABAY_API_KEY"))
+    return False
+
+
 def configured_video_source(job_input: dict[str, Any] | None = None) -> str:
-    requested_source = (job_input or {}).get("videoSource")
-    if requested_source in {"pexels", "pixabay", "local"}:
+    job_input = job_input or {}
+    requested_source = job_input.get("videoSource")
+    local_materials = job_input.get("videoMaterials") or job_input.get("video_materials")
+
+    if requested_source == "local" and local_materials:
+        return requested_source
+
+    if requested_source in {"pexels", "pixabay"} and provider_configured(requested_source):
         return requested_source
 
     explicit_source = os.getenv("MONEYPRINT_VIDEO_SOURCE", "").strip().lower()
-    if explicit_source in {"pexels", "pixabay", "local"}:
+    if explicit_source == "local" and local_materials:
+        return explicit_source
+    if explicit_source in {"pexels", "pixabay"} and provider_configured(explicit_source):
         return explicit_source
     if os.getenv("PEXELS_API_KEY"):
         return "pexels"
@@ -75,14 +91,14 @@ def is_cancelled(job_id: str) -> bool:
 
 def upload_file(bucket: str, user_id: str, job_id: str, local_path: str, suffix: str) -> str:
     path = Path(local_path)
-    storage_path = f"videos/{user_id}/{job_id}/{suffix}"
+    storage_path = f"users/{user_id}/jobs/{job_id}/{suffix}"
     content_type = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
 
     with path.open("rb") as fp:
         get_supabase().storage.from_(bucket).upload(
             storage_path,
             fp,
-            file_options={"content-type": content_type, "upsert": "false"},
+            file_options={"content-type": content_type, "upsert": "true"},
         )
 
     return storage_path
@@ -101,6 +117,7 @@ def build_video_params(job: dict[str, Any]):
         video_script_prompt=job_input.get("prompt") or job.get("prompt") or "",
         video_aspect=job_input.get("aspectRatio") or job.get("aspect_ratio") or "9:16",
         video_source=configured_video_source(job_input),
+        video_materials=job_input.get("videoMaterials") or job_input.get("video_materials"),
         video_language=job_input.get("language") or job.get("language") or "en",
         voice_name=job_input.get("voiceId") or job.get("voice_id") or "en-US-JennyNeural-Female",
         subtitle_enabled=True,

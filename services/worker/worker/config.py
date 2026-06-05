@@ -5,11 +5,14 @@ from dataclasses import dataclass
 from pathlib import Path
 
 
-def required_env(name: str) -> str:
-    value = os.getenv(name)
-    if not value:
-        raise RuntimeError(f"Missing required env var: {name}")
-    return value
+def required_env(name: str, *fallback_names: str) -> str:
+    for env_name in (name, *fallback_names):
+        value = os.getenv(env_name)
+        if value:
+            return value
+
+    names = ", ".join((name, *fallback_names))
+    raise RuntimeError(f"Missing required env var: {names}")
 
 
 @dataclass(frozen=True)
@@ -29,7 +32,7 @@ class WorkerConfig:
     @classmethod
     def from_env(cls) -> "WorkerConfig":
         return cls(
-            supabase_url=required_env("SUPABASE_URL"),
+            supabase_url=required_env("SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL"),
             supabase_service_role_key=required_env("SUPABASE_SERVICE_ROLE_KEY"),
             storage_bucket=os.getenv("SUPABASE_STORAGE_BUCKET", "videos"),
             worker_id=os.getenv("WORKER_ID", "render-worker"),

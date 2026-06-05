@@ -34,7 +34,7 @@ The worker:
 3. Claims a job through `claim_video_job`.
 4. Maps `video_jobs.input` to `MoneyPrinterTurbo` `VideoParams`.
 5. Runs `app.services.task.start` in the worker process.
-6. Uploads final artifacts to Supabase Storage at `videos/{user_id}/{job_id}/...`.
+6. Uploads final artifacts to Supabase Storage at `users/{user_id}/jobs/{job_id}/...`.
 7. Calls `complete_video_job_with_artifacts` or `fail_video_job`.
 
 Rendering never runs in Vercel Functions, Supabase Edge Functions, or the QStash publish path. Default upstream music has been removed. Add only licensed tracks.

@@ -3,8 +3,16 @@ import { calculateCreditCost } from "./pricing";
 export const VIDEO_DURATIONS = [30, 60] as const;
 export const VIDEO_ASPECT_RATIOS = ["9:16", "16:9", "1:1"] as const;
 export const VIDEO_LANGUAGES = ["en", "es", "fr", "de", "zh", "ja"] as const;
-export const VIDEO_SOURCES = ["pexels", "pixabay", "local"] as const;
+export const VIDEO_SOURCES = ["pexels", "pixabay"] as const;
 export const VIDEO_SCENE_COUNTS = [1, 2, 3, 4, 5, 6] as const;
+export const DEFAULT_VOICE_BY_LANGUAGE = {
+  en: "en-US-JennyNeural-Female",
+  es: "es-ES-ElviraNeural-Female",
+  fr: "fr-FR-DeniseNeural-Female",
+  de: "de-DE-KatjaNeural-Female",
+  zh: "zh-CN-XiaoxiaoNeural-Female",
+  ja: "ja-JP-NanamiNeural-Female"
+} as const;
 
 export type CreateVideoInput = {
   topic: string;
@@ -67,6 +75,10 @@ export function validateCreateVideoInput(input: unknown): CreateVideoValidation 
     return { ok: false, error: "Unsupported video source." };
   }
 
+  const defaultVoice = DEFAULT_VOICE_BY_LANGUAGE[language as CreateVideoInput["language"]];
+  const requestedVoiceId = typeof body.voiceId === "string" ? body.voiceId : "";
+  const voiceId = requestedVoiceId.startsWith(`${language}-`) ? requestedVoiceId : defaultVoice;
+
   const value: CreateVideoInput = {
     topic,
     prompt,
@@ -75,7 +87,7 @@ export function validateCreateVideoInput(input: unknown): CreateVideoValidation 
     videoSource: videoSource as CreateVideoInput["videoSource"],
     durationSeconds: durationSeconds as 30 | 60,
     sceneCount: sceneCount as CreateVideoInput["sceneCount"],
-    voiceId: typeof body.voiceId === "string" ? body.voiceId : "en-US-JennyNeural-Female",
+    voiceId,
     ttsProvider: typeof body.ttsProvider === "string" ? body.ttsProvider.slice(0, 64) : "edge",
     subtitleStyle: typeof body.subtitleStyle === "string" ? body.subtitleStyle : "bold",
     musicStyle: typeof body.musicStyle === "string" ? body.musicStyle : "none",

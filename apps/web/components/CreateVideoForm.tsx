@@ -1,6 +1,6 @@
 "use client"
 
-import { calculateCreditCost } from "@moneyprint/shared"
+import { DEFAULT_VOICE_BY_LANGUAGE, calculateCreditCost } from "@moneyprint/shared"
 import { Loader2, Sparkles, Wand2 } from "lucide-react"
 import { useSearchParams } from "next/navigation"
 import { useMemo, useState } from "react"
@@ -37,14 +37,20 @@ const aspectOptions = [
 const sourceOptions = [
   { value: "pexels", label: "Pexels" },
   { value: "pixabay", label: "Pixabay" },
-  { value: "local", label: "Local" },
 ]
 
-const voiceOptions = [
-  { value: "en-US-JennyNeural-Female" },
-  { value: "en-US-GuyNeural-Male" },
-  { value: "en-US-AriaNeural-Female" },
-]
+const voiceOptionsByLanguage: Record<string, Array<{ value: string }>> = {
+  en: [
+    { value: "en-US-JennyNeural-Female" },
+    { value: "en-US-GuyNeural-Male" },
+    { value: "en-US-AriaNeural-Female" },
+  ],
+  es: [{ value: "es-ES-ElviraNeural-Female" }],
+  fr: [{ value: "fr-FR-DeniseNeural-Female" }],
+  de: [{ value: "de-DE-KatjaNeural-Female" }],
+  zh: [{ value: "zh-CN-XiaoxiaoNeural-Female" }],
+  ja: [{ value: "ja-JP-NanamiNeural-Female" }],
+}
 
 const subtitleOptions = [
   { value: "bold" },
@@ -61,12 +67,21 @@ function supportedValue(options: Array<{ value: string }>, value: string | null,
   return value && options.some((option) => option.value === value) ? value : fallback
 }
 
+function defaultVoiceForLanguage(language: string) {
+  return DEFAULT_VOICE_BY_LANGUAGE[language as keyof typeof DEFAULT_VOICE_BY_LANGUAGE] ?? DEFAULT_VOICE_BY_LANGUAGE.en
+}
+
+function voicesForLanguage(language: string) {
+  return voiceOptionsByLanguage[language] ?? voiceOptionsByLanguage.en
+}
+
 export function CreateVideoForm() {
   const { dict } = useI18n()
   const searchParams = useSearchParams()
+  const initialLanguage = supportedValue(languageOptions, searchParams.get("language"), "en")
   const [topic, setTopic] = useState(() => searchParams.get("topic") || "")
   const [prompt, setPrompt] = useState("")
-  const [language, setLanguage] = useState(() => supportedValue(languageOptions, searchParams.get("language"), "en"))
+  const [language, setLanguage] = useState(initialLanguage)
   const [aspectRatio, setAspectRatio] = useState(() => supportedValue(aspectOptions, searchParams.get("aspectRatio"), "9:16"))
   const [videoSource, setVideoSource] = useState(() => supportedValue(sourceOptions, searchParams.get("videoSource"), "pexels"))
   const [durationSeconds, setDurationSeconds] = useState<"30" | "60">(() =>
@@ -74,7 +89,7 @@ export function CreateVideoForm() {
   )
   const [sceneCount, setSceneCount] = useState(() => supportedValue(sceneOptions, searchParams.get("sceneCount"), "3"))
   const [voiceId, setVoiceId] = useState(() =>
-    supportedValue(voiceOptions, searchParams.get("voice"), "en-US-JennyNeural-Female")
+    supportedValue(voicesForLanguage(initialLanguage), searchParams.get("voice"), defaultVoiceForLanguage(initialLanguage))
   )
   const [subtitleStyle, setSubtitleStyle] = useState(() =>
     supportedValue(subtitleOptions, searchParams.get("subtitle"), "bold")
@@ -89,6 +104,14 @@ export function CreateVideoForm() {
     () => calculateCreditCost(Number(durationSeconds), 1),
     [durationSeconds]
   )
+  const activeVoiceOptions = voicesForLanguage(language)
+
+  function handleLanguageChange(nextLanguage: string) {
+    setLanguage(nextLanguage)
+    setVoiceId((currentVoiceId) =>
+      supportedValue(voicesForLanguage(nextLanguage), currentVoiceId, defaultVoiceForLanguage(nextLanguage))
+    )
+  }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -106,7 +129,7 @@ export function CreateVideoForm() {
         videoSource,
         durationSeconds: Number(durationSeconds),
         sceneCount: Number(sceneCount),
-        voiceId,
+        voiceId: supportedValue(activeVoiceOptions, voiceId, defaultVoiceForLanguage(language)),
         ttsProvider: "edge",
         subtitleStyle,
         musicStyle,
@@ -195,7 +218,7 @@ export function CreateVideoForm() {
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="space-y-2">
               <Label htmlFor="language">Language</Label>
-              <Select value={language} onValueChange={setLanguage}>
+              <Select value={language} onValueChange={handleLanguageChange}>
                 <SelectTrigger id="language">
                   <SelectValue />
                 </SelectTrigger>
@@ -280,7 +303,7 @@ export function CreateVideoForm() {
                   <SelectValue placeholder={dict.create.selectVoice} />
                 </SelectTrigger>
                 <SelectContent>
-                  {voiceOptions.map((option) => (
+                  {activeVoiceOptions.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                       {dict.create.voices[option.value as keyof typeof dict.create.voices] ?? option.value}
                     </SelectItem>

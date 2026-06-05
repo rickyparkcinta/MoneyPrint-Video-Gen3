@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import base64
 import hashlib
 import hmac
 import json
@@ -19,11 +20,15 @@ queue: asyncio.Queue[str] = asyncio.Queue()
 queued_ids: set[str] = set()
 
 
+def qstash_body_hash(body: bytes) -> str:
+    return base64.urlsafe_b64encode(hashlib.sha256(body).digest()).decode("ascii").rstrip("=")
+
+
 def verify_qstash_signature(config: WorkerConfig, signature: str | None, body: bytes) -> None:
     if not signature:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing QStash signature.")
 
-    expected_body_hash = hashlib.sha256(body).hexdigest()
+    expected_body_hash = qstash_body_hash(body)
     last_error: Exception | None = None
     expected_url = _expected_qstash_url()
 
@@ -37,7 +42,8 @@ def verify_qstash_signature(config: WorkerConfig, signature: str | None, body: b
                 options={"require": ["iss", "sub", "exp", "nbf", "body"]},
                 leeway=30,
             )
-            if not hmac.compare_digest(str(claims.get("body", "")), expected_body_hash):
+            signed_body_hash = str(claims.get("body", "")).rstrip("=")
+            if not hmac.compare_digest(signed_body_hash, expected_body_hash):
                 raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid QStash body hash.")
             if expected_url and claims.get("sub") != expected_url:
                 raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid QStash subject.")
