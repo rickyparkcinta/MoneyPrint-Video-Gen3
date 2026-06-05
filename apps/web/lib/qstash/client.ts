@@ -1,5 +1,7 @@
 import { Client } from "@upstash/qstash";
 
+const DEFAULT_RENDER_WORKER_URL = "https://moneyprint-video-gen3.onrender.com";
+
 let qstashClient: Client | null = null;
 
 export function getQstashClient(): Client {
@@ -33,7 +35,8 @@ export function getRenderWorkerUrl(): string | null {
     process.env.RENDER_WORKER_URL ||
     process.env.VIDEO_WORKER_URL ||
     process.env.WORKER_URL ||
-    process.env.RENDER_EXTERNAL_URL;
+    process.env.RENDER_EXTERNAL_URL ||
+    (process.env.VERCEL ? DEFAULT_RENDER_WORKER_URL : "");
 
   return value?.trim().replace(/\/+$/, "") || null;
 }
