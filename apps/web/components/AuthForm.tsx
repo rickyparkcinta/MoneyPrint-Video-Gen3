@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { normalizeReferralCode, REFERRAL_COOKIE } from "@/lib/referrals"
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser"
 import { useI18n } from "@/components/I18nProvider"
 
@@ -24,6 +25,7 @@ export function AuthForm({ mode }: AuthFormProps) {
   const [loadingAction, setLoadingAction] = useState<AuthAction | null>(null)
   const isSignup = mode === "signup"
   const loading = loadingAction !== null
+  const referralCode = isSignup ? readReferralCode() : null
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -38,6 +40,7 @@ export function AuthForm({ mode }: AuthFormProps) {
           password,
           options: {
             emailRedirectTo: `${window.location.origin}/dashboard`,
+            data: referralCode ? { referral_code: referralCode } : undefined,
           },
         })
       : await supabase.auth.signInWithPassword({
@@ -78,6 +81,7 @@ export function AuthForm({ mode }: AuthFormProps) {
       options: {
         emailRedirectTo: `${window.location.origin}/dashboard`,
         shouldCreateUser: isSignup,
+        data: isSignup && referralCode ? { referral_code: referralCode } : undefined,
       },
     })
 
@@ -187,4 +191,21 @@ export function AuthForm({ mode }: AuthFormProps) {
       </CardContent>
     </Card>
   )
+}
+
+function readReferralCode(): string | null {
+  if (typeof document === "undefined") {
+    return null
+  }
+
+  const cookie = document.cookie
+    .split(";")
+    .map((entry) => entry.trim())
+    .find((entry) => entry.startsWith(`${REFERRAL_COOKIE}=`))
+
+  if (!cookie) {
+    return null
+  }
+
+  return normalizeReferralCode(decodeURIComponent(cookie.slice(REFERRAL_COOKIE.length + 1)))
 }

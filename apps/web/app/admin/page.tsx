@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 import { ACTIVE_JOB_STATUSES } from "@moneyprint/shared"
-import { Users, Film, AlertTriangle, Activity, ShieldAlert } from "lucide-react"
+import { Users, Film, AlertTriangle, Activity, ShieldAlert, Network, ReceiptText } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
@@ -30,6 +30,29 @@ type AdminUserRow = {
   full_name: string | null
   role: string
   credits: number
+}
+
+type ReferralRow = {
+  referred_user_id: string
+  referrer_user_id: string
+  created_at: string
+}
+
+type ReferralRewardRow = {
+  id: string
+  payer_user_id: string
+  earner_user_id: string
+  level: number
+  basis_credits: number
+  granted_credits: number
+  source: string
+  created_at: string
+}
+
+type ProfileLabelRow = {
+  id: string
+  email: string | null
+  full_name: string | null
 }
 
 export default async function AdminPage() {
@@ -68,6 +91,9 @@ export default async function AdminPage() {
     { data: failedJobRows },
     { data: queuedRows },
     { data: recentProfiles },
+    { count: totalReferrals },
+    { data: referralRows },
+    { data: referralRewardRows },
   ] = await Promise.all([
     admin.from("profiles").select("id", { count: "exact", head: true }),
     admin.from("video_jobs").select("id", { count: "exact", head: true }),
@@ -89,6 +115,17 @@ export default async function AdminPage() {
       .select("id,email,full_name,role,created_at")
       .order("created_at", { ascending: false })
       .limit(10),
+    admin.from("referrals").select("referred_user_id", { count: "exact", head: true }),
+    admin
+      .from("referrals")
+      .select("referred_user_id,referrer_user_id,created_at")
+      .order("created_at", { ascending: false })
+      .limit(5000),
+    admin
+      .from("referral_rewards")
+      .select("id,payer_user_id,earner_user_id,level,basis_credits,granted_credits,source,created_at")
+      .order("created_at", { ascending: false })
+      .limit(5000),
   ])
 
   const profileIds = (recentProfiles ?? []).map((profile) => profile.id)
@@ -115,6 +152,18 @@ export default async function AdminPage() {
   const queuedCount = (queuedRows ?? []).filter((job) => job.status === "queued").length
   const processingCount = (queuedRows ?? []).length - queuedCount
   const oldestQueuedAt = queuedRows?.[0]?.created_at
+  const referralStats = summarizeAdminReferrals(
+    (referralRows ?? []) as ReferralRow[],
+    (referralRewardRows ?? []) as ReferralRewardRow[]
+  )
+  const referralProfileIds = Array.from(new Set([
+    ...referralStats.topReferrers.map((row) => row.userId),
+    ...referralStats.recentRewards.flatMap((row) => [row.earner_user_id, row.payer_user_id]),
+  ]))
+  const { data: referralProfiles } = referralProfileIds.length > 0
+    ? await admin.from("profiles").select("id,email,full_name").in("id", referralProfileIds)
+    : { data: [] }
+  const referralProfileById = new Map((referralProfiles ?? []).map((profile: ProfileLabelRow) => [profile.id, profile]))
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -135,6 +184,8 @@ export default async function AdminPage() {
         <StatCard label="Total Videos" value={(totalVideos ?? 0).toLocaleString()} icon={Film} />
         <StatCard label="Active Jobs" value={(activeJobs ?? 0).toLocaleString()} icon={Activity} />
         <StatCard label="Failed Jobs" value={failedJobs.length} icon={AlertTriangle} hint="Most recent failed jobs" />
+        <StatCard label="Referral Links" value={(totalReferrals ?? 0).toLocaleString()} icon={Network} hint="Claimed sponsor relationships" />
+        <StatCard label="Referral Credits" value={referralStats.totalCredits.toLocaleString()} icon={ReceiptText} hint="Credits granted to earners" />
       </div>
 
       <Card className="mb-8">
@@ -169,6 +220,88 @@ export default async function AdminPage() {
           )}
         </CardContent>
       </Card>
+
+      <div className="mb-8 grid gap-8 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Referral Tree Summary</CardTitle>
+            <CardDescription>Top referrers by direct and downstream accounts</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {referralStats.topReferrers.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Referrer</TableHead>
+                    <TableHead className="text-right">Direct</TableHead>
+                    <TableHead className="text-right">Tree</TableHead>
+                    <TableHead className="text-right">Credits</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {referralStats.topReferrers.map((row) => (
+                    <TableRow key={row.userId}>
+                      <TableCell>
+                        <div className="font-medium">{profileLabel(referralProfileById.get(row.userId), row.userId)}</div>
+                        <div className="text-xs text-muted-foreground">{row.userId}</div>
+                      </TableCell>
+                      <TableCell className="text-right font-mono">{row.directCount}</TableCell>
+                      <TableCell className="text-right font-mono">{row.treeCount}</TableCell>
+                      <TableCell className="text-right font-mono">{row.creditsEarned}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <p className="py-8 text-center text-sm text-muted-foreground">No referral relationships yet.</p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Referral Rewards</CardTitle>
+            <CardDescription>Credit grants from paid referral conversions</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {referralStats.recentRewards.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Earner</TableHead>
+                    <TableHead>Payer</TableHead>
+                    <TableHead>Level</TableHead>
+                    <TableHead className="text-right">Credits</TableHead>
+                    <TableHead>Created</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {referralStats.recentRewards.map((reward) => (
+                    <TableRow key={reward.id}>
+                      <TableCell>
+                        <div className="font-medium">{profileLabel(referralProfileById.get(reward.earner_user_id), reward.earner_user_id)}</div>
+                        <div className="text-xs text-muted-foreground">{reward.source.replaceAll("_", " ")}</div>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {profileLabel(referralProfileById.get(reward.payer_user_id), reward.payer_user_id)}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">L{reward.level}</Badge>
+                      </TableCell>
+                      <TableCell className="text-right font-mono">+{reward.granted_credits}</TableCell>
+                      <TableCell className="whitespace-nowrap text-muted-foreground">
+                        {formatDateTime(reward.created_at)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <p className="py-8 text-center text-sm text-muted-foreground">No referral rewards yet.</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       <Card className="mb-8">
         <CardHeader>
@@ -256,4 +389,56 @@ export default async function AdminPage() {
       </div>
     </div>
   )
+}
+
+function summarizeAdminReferrals(referrals: ReferralRow[], rewards: ReferralRewardRow[]) {
+  const childrenByReferrer = new Map<string, string[]>()
+  referrals.forEach((referral) => {
+    const children = childrenByReferrer.get(referral.referrer_user_id) ?? []
+    children.push(referral.referred_user_id)
+    childrenByReferrer.set(referral.referrer_user_id, children)
+  })
+
+  const creditsByEarner = new Map<string, number>()
+  rewards.forEach((reward) => {
+    creditsByEarner.set(reward.earner_user_id, (creditsByEarner.get(reward.earner_user_id) ?? 0) + reward.granted_credits)
+  })
+
+  const directReferrers = Array.from(childrenByReferrer.keys())
+  const topReferrers = directReferrers
+    .map((userId) => ({
+      userId,
+      directCount: childrenByReferrer.get(userId)?.length ?? 0,
+      treeCount: countReferralTree(userId, childrenByReferrer),
+      creditsEarned: creditsByEarner.get(userId) ?? 0,
+    }))
+    .sort((a, b) => b.treeCount - a.treeCount || b.directCount - a.directCount || b.creditsEarned - a.creditsEarned)
+    .slice(0, 10)
+
+  return {
+    topReferrers,
+    recentRewards: rewards.slice(0, 10),
+    totalCredits: rewards.reduce((sum, reward) => sum + reward.granted_credits, 0),
+  }
+}
+
+function countReferralTree(rootUserId: string, childrenByReferrer: Map<string, string[]>) {
+  const seen = new Set<string>()
+  const stack = [...(childrenByReferrer.get(rootUserId) ?? [])]
+
+  while (stack.length > 0) {
+    const userId = stack.pop()
+    if (!userId || seen.has(userId)) {
+      continue
+    }
+
+    seen.add(userId)
+    stack.push(...(childrenByReferrer.get(userId) ?? []))
+  }
+
+  return seen.size
+}
+
+function profileLabel(profile: ProfileLabelRow | undefined, fallbackId: string) {
+  return profile?.full_name || profile?.email || fallbackId.slice(0, 8)
 }

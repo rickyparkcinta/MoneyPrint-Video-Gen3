@@ -304,6 +304,9 @@ function transactionDescription(transaction: CreditTransactionRow, dict: Diction
   if (transaction.source === "subscription_renewal") {
     return dict.billing.transaction.renewal
   }
+  if (transaction.source === "referral_reward") {
+    return dict.billing.transaction.referralReward
+  }
   if (transaction.source === "video_job" || transaction.source === "video_generation") {
     return transaction.video_job_id
       ? interpolate(dict.billing.transaction.videoWithId, { id: transaction.video_job_id.slice(0, 8) })

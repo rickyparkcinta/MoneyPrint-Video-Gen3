@@ -1,7 +1,16 @@
 import { NextRequest, NextResponse } from "next/server"
 import { LOCALE_COOKIE, normalizeLocale } from "@/lib/i18n"
+import { normalizeReferralCode } from "@/lib/referrals"
 
 export function middleware(request: NextRequest) {
+  const referralCode = normalizeReferralCode(request.nextUrl.searchParams.get("ref"))
+  if (referralCode && !request.nextUrl.pathname.startsWith("/r/")) {
+    const url = request.nextUrl.clone()
+    url.pathname = `/r/${referralCode}`
+    url.search = ""
+    return NextResponse.redirect(url)
+  }
+
   const requestedLocale = request.nextUrl.searchParams.get("lang") ?? request.nextUrl.searchParams.get("locale")
   const locale = normalizeLocale(requestedLocale)
 

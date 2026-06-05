@@ -8,6 +8,7 @@ import {
   Video, 
   CreditCard, 
   Settings, 
+  Share2,
   LogOut,
   Menu,
   X,
@@ -55,6 +56,7 @@ export function Header({ viewer }: HeaderProps) {
     { name: dict.common.createVideo, href: "/create", icon: PlusCircle },
     { name: dict.common.videos, href: "/videos", icon: Video },
     { name: dict.common.billing, href: "/billing", icon: CreditCard },
+    { name: dict.common.referrals, href: "/referrals", icon: Share2 },
     { name: dict.common.settings, href: "/settings", icon: Settings },
   ]
 

@@ -37,6 +37,19 @@ async function grantCredits(userId: string, amount: number, source: string, even
   });
 }
 
+async function processReferralPayment(userId: string, basisCredits: number, source: string, eventId: string) {
+  if (!basisCredits || basisCredits <= 0) {
+    return;
+  }
+
+  await getSupabaseAdmin().rpc("process_referral_payment", {
+    p_payer_user_id: userId,
+    p_basis_credits: basisCredits,
+    p_source: source,
+    p_stripe_event_id: eventId
+  });
+}
+
 async function upsertSubscription(subscription: Stripe.Subscription) {
   const userId = subscription.metadata.user_id;
   const planId = subscription.metadata.plan_id;
@@ -111,7 +124,9 @@ export async function POST(request: Request) {
       const session = event.data.object as Stripe.Checkout.Session;
       const userId = session.metadata?.user_id;
       if (session.mode === "payment" && userId) {
-        await grantCredits(userId, Number(session.metadata?.credit_amount || 0), "credit_pack", event.id);
+        const creditAmount = Number(session.metadata?.credit_amount || 0);
+        await grantCredits(userId, creditAmount, "credit_pack", event.id);
+        await processReferralPayment(userId, creditAmount, "credit_pack", event.id);
       }
       break;
     }
@@ -135,6 +150,7 @@ export async function POST(request: Request) {
       const plan = getPlanById(subscription.metadata.plan_id);
       if (userId && plan) {
         await grantCredits(userId, plan.monthlyCredits, "subscription_renewal", event.id);
+        await processReferralPayment(userId, plan.monthlyCredits, "subscription_renewal", event.id);
       }
       break;
     }
