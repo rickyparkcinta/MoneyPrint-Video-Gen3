@@ -16,7 +16,7 @@ export async function POST(request: Request) {
 
   const body = (await request.json().catch(() => null)) as { planId?: string } | null;
   const planId = body?.planId || "";
-  const price = getStripePriceForPlan(planId);
+  const price = await getStripePriceForPlan(planId);
 
   if (!price) {
     return NextResponse.json({ error: "Unknown or unconfigured Stripe price." }, { status: 400 });

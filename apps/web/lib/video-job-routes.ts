@@ -1,6 +1,6 @@
 import { validateCreateVideoInput } from "@moneyprint/shared";
 import { NextResponse } from "next/server";
-import { publishRenderDispatch } from "@/lib/qstash/client";
+import { getRenderDispatchConfigError, getRenderWorkerUrl, publishRenderDispatch } from "@/lib/qstash/client";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getAuthenticatedUser } from "@/lib/supabase/server";
 
@@ -13,6 +13,14 @@ export async function createVideoJobFromRequest(request: Request) {
   const parsed = validateCreateVideoInput(await request.json().catch(() => null));
   if (!parsed.ok) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
+  }
+
+  const dispatchConfigError = getRenderDispatchConfigError();
+  if (dispatchConfigError) {
+    return NextResponse.json(
+      { error: `Video rendering is not configured: ${dispatchConfigError}. No credits were charged.` },
+      { status: 503 }
+    );
   }
 
   const admin = getSupabaseAdmin();
@@ -56,7 +64,7 @@ export async function createVideoJobFromRequest(request: Request) {
 
   try {
     const messageId = await publishRenderDispatch(data.job_id);
-    const renderWorkerUrl = process.env.RENDER_WORKER_URL?.replace(/\/+$/, "");
+    const renderWorkerUrl = getRenderWorkerUrl();
 
     await admin
       .from("video_jobs")

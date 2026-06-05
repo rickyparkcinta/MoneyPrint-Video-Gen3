@@ -6,6 +6,7 @@ export type BillingPlan = {
   monthlyCredits: number;
   priceUsd: number;
   stripeEnvKey?: string;
+  stripeLookupKey?: string;
   description: string;
 };
 
@@ -23,6 +24,7 @@ export const BILLING_PLANS: BillingPlan[] = [
     monthlyCredits: 50,
     priceUsd: 19,
     stripeEnvKey: "STRIPE_STARTER_PRICE_ID",
+    stripeLookupKey: "moneyprint_starter_monthly",
     description: "For solo creators producing regular shorts."
   },
   {
@@ -31,6 +33,7 @@ export const BILLING_PLANS: BillingPlan[] = [
     monthlyCredits: 180,
     priceUsd: 49,
     stripeEnvKey: "STRIPE_PRO_PRICE_ID",
+    stripeLookupKey: "moneyprint_pro_monthly",
     description: "For weekly content pipelines and client work."
   },
   {
@@ -39,6 +42,7 @@ export const BILLING_PLANS: BillingPlan[] = [
     monthlyCredits: 700,
     priceUsd: 149,
     stripeEnvKey: "STRIPE_AGENCY_PRICE_ID",
+    stripeLookupKey: "moneyprint_agency_monthly",
     description: "For higher-volume short-video operations."
   }
 ];
@@ -47,7 +51,8 @@ export const CREDIT_PACK = {
   id: "credit_pack_25",
   name: "25 credit pack",
   credits: 25,
-  stripeEnvKey: "STRIPE_CREDIT_PACK_PRICE_ID"
+  stripeEnvKey: "STRIPE_CREDIT_PACK_PRICE_ID",
+  stripeLookupKey: "moneyprint_credit_pack_25"
 } as const;
 
 export function getPlanById(planId: string): BillingPlan | undefined {

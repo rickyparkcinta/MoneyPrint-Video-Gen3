@@ -1,11 +1,10 @@
 import { Client } from "@upstash/qstash";
-import { requiredEnv } from "@/lib/env";
 
 let qstashClient: Client | null = null;
 
 export function getQstashClient(): Client {
   if (!qstashClient) {
-    const token = process.env.UPSTASH_QSTASH_TOKEN || process.env.QSTASH_TOKEN;
+    const token = getQstashToken();
     if (!token) {
       throw new Error("Missing required env var: UPSTASH_QSTASH_TOKEN");
     }
@@ -17,8 +16,34 @@ export function getQstashClient(): Client {
   return qstashClient;
 }
 
+export function getRenderDispatchConfigError(): string | null {
+  if (!getRenderWorkerUrl()) {
+    return "Missing required env var: RENDER_WORKER_URL";
+  }
+
+  if (!getQstashToken()) {
+    return "Missing required env var: UPSTASH_QSTASH_TOKEN";
+  }
+
+  return null;
+}
+
+export function getRenderWorkerUrl(): string | null {
+  const value =
+    process.env.RENDER_WORKER_URL ||
+    process.env.VIDEO_WORKER_URL ||
+    process.env.WORKER_URL ||
+    process.env.RENDER_EXTERNAL_URL;
+
+  return value?.trim().replace(/\/+$/, "") || null;
+}
+
 export async function publishRenderDispatch(jobId: string) {
-  const workerUrl = requiredEnv("RENDER_WORKER_URL").replace(/\/+$/, "");
+  const workerUrl = getRenderWorkerUrl();
+  if (!workerUrl) {
+    throw new Error("Missing required env var: RENDER_WORKER_URL");
+  }
+
   const headers: Record<string, string> = {};
 
   if (process.env.WORKER_SHARED_SECRET) {
@@ -33,4 +58,8 @@ export async function publishRenderDispatch(jobId: string) {
   });
 
   return response.messageId;
+}
+
+function getQstashToken(): string | null {
+  return process.env.UPSTASH_QSTASH_TOKEN || process.env.QSTASH_TOKEN || null;
 }

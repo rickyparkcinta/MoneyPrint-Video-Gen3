@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin";
-import { publishRenderDispatch } from "@/lib/qstash/client";
+import { getRenderDispatchConfigError, getRenderWorkerUrl, publishRenderDispatch } from "@/lib/qstash/client";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -23,8 +23,13 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
     return NextResponse.json({ error: "Completed jobs cannot be retried." }, { status: 400 });
   }
 
+  const dispatchConfigError = getRenderDispatchConfigError();
+  if (dispatchConfigError) {
+    return NextResponse.json({ error: `Video rendering is not configured: ${dispatchConfigError}.` }, { status: 503 });
+  }
+
   const messageId = await publishRenderDispatch(job.id);
-  const renderWorkerUrl = process.env.RENDER_WORKER_URL?.replace(/\/+$/, "");
+  const renderWorkerUrl = getRenderWorkerUrl();
 
   await admin
     .from("video_jobs")
