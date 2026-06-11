@@ -78,6 +78,9 @@ def should_use_simple_fallback(job_input: dict[str, Any] | None = None) -> bool:
         return True
 
     job_input = job_input or {}
+    if int(job_input.get("durationSeconds") or job_input.get("duration_seconds") or 30) <= 5:
+        return True
+
     local_materials = job_input.get("videoMaterials") or job_input.get("video_materials")
     source = job_input.get("videoSource") or os.getenv("MONEYPRINT_VIDEO_SOURCE", "").strip().lower()
     has_material_source = (
@@ -193,12 +196,20 @@ def fallback_script(job: dict[str, Any]) -> str:
     job_input = job.get("input") or {}
     topic = str(job_input.get("topic") or job["topic"]).strip()
     prompt = str(job_input.get("prompt") or job.get("prompt") or "").strip()
-    lines = [
-        f"{topic}.",
-        "The strongest teams do not win by sitting in the same room. They win with clear goals, focused work blocks, and written decisions everyone can revisit.",
-        "Remote work turns productivity into a system: fewer interruptions, better async communication, and access to talent wherever it lives.",
-        "The future belongs to teams that measure outcomes, protect deep work, and design collaboration intentionally.",
-    ]
+    if "tea" in topic.lower() and "grandpa" in topic.lower():
+        lines = [
+            f"{topic}.",
+            "Grandpa lifts a warm cup of tea and smiles.",
+            "He explains that tea can support focus, comfort, hydration, and calm.",
+            "One small cup can become a simple daily wellness ritual.",
+        ]
+    else:
+        lines = [
+            f"{topic}.",
+            "A clear idea, shown simply and quickly.",
+            "The key benefit is easy to understand at a glance.",
+            "A short final thought leaves the viewer with one useful takeaway.",
+        ]
     if prompt:
         lines.append(f"Direction: {prompt}")
     return "\n\n".join(lines)
@@ -339,7 +350,7 @@ def create_fallback_frame(
 def render_simple_fallback_video(config: WorkerConfig, job_id: str, claimed: dict[str, Any], work_dir: str) -> dict[str, Any]:
     job_input = claimed.get("input") or {}
     aspect_ratio = job_input.get("aspectRatio") or claimed.get("aspect_ratio") or "9:16"
-    duration = max(6, min(12, int(job_input.get("durationSeconds") or claimed.get("duration_seconds") or 30)))
+    duration = max(5, min(12, int(job_input.get("durationSeconds") or claimed.get("duration_seconds") or 30)))
     scene_count = max(1, min(6, int(job_input.get("sceneCount") or 3)))
     frame_size = fallback_resolution(aspect_ratio)
     script = fallback_script(claimed)

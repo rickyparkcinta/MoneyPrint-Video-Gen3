@@ -84,8 +84,8 @@ export function CreateVideoForm() {
   const [language, setLanguage] = useState(initialLanguage)
   const [aspectRatio, setAspectRatio] = useState(() => supportedValue(aspectOptions, searchParams.get("aspectRatio"), "9:16"))
   const [videoSource, setVideoSource] = useState(() => supportedValue(sourceOptions, searchParams.get("videoSource"), "pexels"))
-  const [durationSeconds, setDurationSeconds] = useState<"30" | "60">(() =>
-    searchParams.get("duration") === "60" ? "60" : "30"
+  const [durationSeconds, setDurationSeconds] = useState<"5" | "30" | "60">(() =>
+    searchParams.get("duration") === "5" ? "5" : searchParams.get("duration") === "60" ? "60" : "30"
   )
   const [sceneCount, setSceneCount] = useState(() => supportedValue(sceneOptions, searchParams.get("sceneCount"), "3"))
   const [voiceId, setVoiceId] = useState(() =>
@@ -269,11 +269,12 @@ export function CreateVideoForm() {
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="space-y-2">
               <Label htmlFor="duration">{dict.create.duration}</Label>
-              <Select value={durationSeconds} onValueChange={(v) => setDurationSeconds(v as "30" | "60")}>
+              <Select value={durationSeconds} onValueChange={(v) => setDurationSeconds(v as "5" | "30" | "60")}>
                 <SelectTrigger id="duration">
                   <SelectValue placeholder={dict.create.selectDuration} />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="5">{dict.create.seconds5}</SelectItem>
                   <SelectItem value="30">{dict.create.seconds30}</SelectItem>
                   <SelectItem value="60">{dict.create.seconds60}</SelectItem>
                 </SelectContent>

@@ -1,6 +1,6 @@
 import { calculateCreditCost } from "./pricing";
 
-export const VIDEO_DURATIONS = [30, 60] as const;
+export const VIDEO_DURATIONS = [5, 30, 60] as const;
 export const VIDEO_ASPECT_RATIOS = ["9:16", "16:9", "1:1"] as const;
 export const VIDEO_LANGUAGES = ["en", "es", "fr", "de", "zh", "ja"] as const;
 export const VIDEO_SOURCES = ["pexels", "pixabay"] as const;
@@ -20,7 +20,7 @@ export type CreateVideoInput = {
   language: (typeof VIDEO_LANGUAGES)[number];
   aspectRatio: (typeof VIDEO_ASPECT_RATIOS)[number];
   videoSource: (typeof VIDEO_SOURCES)[number];
-  durationSeconds: 30 | 60;
+  durationSeconds: (typeof VIDEO_DURATIONS)[number];
   sceneCount: (typeof VIDEO_SCENE_COUNTS)[number];
   voiceId?: string;
   ttsProvider?: string;
@@ -51,8 +51,8 @@ export function validateCreateVideoInput(input: unknown): CreateVideoValidation 
   }
 
   const durationSeconds = Number(body.durationSeconds || 30);
-  if (!VIDEO_DURATIONS.includes(durationSeconds as 30 | 60)) {
-    return { ok: false, error: "Duration must be 30 or 60 seconds." };
+  if (!VIDEO_DURATIONS.includes(durationSeconds as CreateVideoInput["durationSeconds"])) {
+    return { ok: false, error: "Duration must be 5, 30, or 60 seconds." };
   }
 
   const sceneCount = Number(body.sceneCount || (durationSeconds <= 30 ? 3 : 5));
@@ -85,7 +85,7 @@ export function validateCreateVideoInput(input: unknown): CreateVideoValidation 
     language: language as CreateVideoInput["language"],
     aspectRatio: aspectRatio as CreateVideoInput["aspectRatio"],
     videoSource: videoSource as CreateVideoInput["videoSource"],
-    durationSeconds: durationSeconds as 30 | 60,
+    durationSeconds: durationSeconds as CreateVideoInput["durationSeconds"],
     sceneCount: sceneCount as CreateVideoInput["sceneCount"],
     voiceId,
     ttsProvider: typeof body.ttsProvider === "string" ? body.ttsProvider.slice(0, 64) : "edge",
