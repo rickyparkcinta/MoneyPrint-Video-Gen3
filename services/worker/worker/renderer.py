@@ -419,7 +419,7 @@ def build_video_params(job: dict[str, Any]):
         video_language=job_input.get("language") or job.get("language") or "en",
         voice_name=job_input.get("voiceId") or job.get("voice_id") or "en-US-JennyNeural-Female",
         voice_rate=1.12 if duration <= 30 else 1.0,
-        subtitle_enabled=True,
+        subtitle_enabled=False,
         video_count=int(job.get("variants") or 1),
         video_clip_duration=5,
         paragraph_number=max(1, min(scene_count, 6)),
