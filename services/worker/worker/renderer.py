@@ -399,16 +399,26 @@ def build_video_params(job: dict[str, Any]):
     job_input = job.get("input") or {}
     duration = int(job_input.get("durationSeconds") or job.get("duration_seconds") or 30)
     scene_count = int(job_input.get("sceneCount") or (1 if duration <= 30 else 2))
+    prompt = job_input.get("prompt") or job.get("prompt") or ""
+    max_words = max(35, min(150, int(duration * 2.2)))
+    duration_instruction = (
+        f"Create a concise voiceover for a {duration}-second short video. "
+        f"Use no more than {max_words} words total, split into {max(1, min(scene_count, 6))} short paragraph(s). "
+        "Keep sentences brief so text-to-speech audio fits the target duration."
+    )
+    script_prompt = f"{duration_instruction}\n\nUser direction: {prompt}".strip() if prompt else duration_instruction
 
     return VideoParams(
         video_subject=job_input.get("topic") or job["topic"],
         video_script="",
-        video_script_prompt=job_input.get("prompt") or job.get("prompt") or "",
+        video_script_prompt=script_prompt,
+        custom_system_prompt=duration_instruction,
         video_aspect=job_input.get("aspectRatio") or job.get("aspect_ratio") or "9:16",
         video_source=configured_video_source(job_input),
         video_materials=job_input.get("videoMaterials") or job_input.get("video_materials"),
         video_language=job_input.get("language") or job.get("language") or "en",
         voice_name=job_input.get("voiceId") or job.get("voice_id") or "en-US-JennyNeural-Female",
+        voice_rate=1.12 if duration <= 30 else 1.0,
         subtitle_enabled=True,
         video_count=int(job.get("variants") or 1),
         video_clip_duration=5,
